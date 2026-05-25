@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/rrobles/Desktop/universidad/universidad_2026/PROG_PARALELA/integrador/pilar1-miner/gpu)",
+      "Bash(mkdir -p /Users/rrobles/Desktop/universidad/universidad_2026/PROG_PARALELA/integrador/pilar1-miner/cpu)"
+    ]
+  }
+}
