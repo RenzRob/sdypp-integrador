@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(mkdir -p /Users/rrobles/Desktop/universidad/universidad_2026/PROG_PARALELA/integrador/pilar1-miner/gpu)",
-      "Bash(mkdir -p /Users/rrobles/Desktop/universidad/universidad_2026/PROG_PARALELA/integrador/pilar1-miner/cpu)"
+      "Bash(mkdir -p /Users/rrobles/Desktop/universidad/universidad_2026/PROG_PARALELA/integrador/pilar1-miner/cpu)",
+      "WebFetch(domain:docs.nvidia.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:nvidia.github.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:dpetrocelli.github.io)"
     ]
   }
 }

@@ -26,8 +26,10 @@
 #define BLOCKS_PER_LAUNCH  1024
 #define NONCES_PER_LAUNCH  (THREADS_PER_BLOCK * BLOCKS_PER_LAUNCH)
 
-// Prefijo máximo a testear (8 = ~4 mil millones de hashes en promedio)
-#define MAX_PREFIX_LEN 8
+// Prefijo máximo a testear
+#define MAX_PREFIX_LEN 12
+// Timeout por prefijo en segundos (corta si tarda demasiado)
+#define TIMEOUT_SEC    120
 
 // ─── Kernel (igual que Hit #5, reutilizado aquí) ──────────────────────────────
 
@@ -70,6 +72,7 @@ struct MineResult {
     char     hash[33];
     double   elapsed_sec;
     uint64_t total_hashes;
+    int      timed_out;   // 1 si se cortó por timeout
 };
 
 MineResult mine_with_prefix(
@@ -82,12 +85,13 @@ MineResult mine_with_prefix(
     cudaMemset(d_found_flag,  0, sizeof(int));
     cudaMemset(d_found_nonce, 0, sizeof(uint64_t));
 
-    struct timespec t_start, t_end;
+    struct timespec t_start, t_now, t_end;
     clock_gettime(CLOCK_MONOTONIC, &t_start);
 
     uint64_t nonce_start  = 0;
     uint64_t total_hashes = 0;
     int      found_flag   = 0;
+    int      timed_out    = 0;
 
     while (!found_flag) {
         mine_kernel<<<BLOCKS_PER_LAUNCH, THREADS_PER_BLOCK>>>(
@@ -98,15 +102,31 @@ MineResult mine_with_prefix(
         cudaMemcpy(&found_flag, d_found_flag, sizeof(int), cudaMemcpyDeviceToHost);
         nonce_start  += NONCES_PER_LAUNCH;
         total_hashes += NONCES_PER_LAUNCH;
+
+        // Verificar timeout
+        clock_gettime(CLOCK_MONOTONIC, &t_now);
+        double elapsed = (t_now.tv_sec - t_start.tv_sec)
+                       + (t_now.tv_nsec - t_start.tv_nsec) / 1e9;
+        if (!found_flag && elapsed >= TIMEOUT_SEC) {
+            timed_out = 1;
+            break;
+        }
     }
 
     clock_gettime(CLOCK_MONOTONIC, &t_end);
 
     MineResult r;
-    cudaMemcpy(&r.nonce,  d_found_nonce, sizeof(uint64_t), cudaMemcpyDeviceToHost);
-    cudaMemcpy(r.hash,    d_found_hash,  33,               cudaMemcpyDeviceToHost);
-    r.elapsed_sec  = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
+    r.timed_out    = timed_out;
     r.total_hashes = total_hashes;
+    r.elapsed_sec  = (t_end.tv_sec - t_start.tv_sec) + (t_end.tv_nsec - t_start.tv_nsec) / 1e9;
+
+    if (!timed_out) {
+        cudaMemcpy(&r.nonce, d_found_nonce, sizeof(uint64_t), cudaMemcpyDeviceToHost);
+        cudaMemcpy(r.hash,   d_found_hash,  33,               cudaMemcpyDeviceToHost);
+    } else {
+        r.nonce   = 0;
+        r.hash[0] = '\0';
+    }
     return r;
 }
 
@@ -130,7 +150,7 @@ int main(int argc, char* argv[]) {
     int*      d_found_flag;
 
     cudaMalloc((void**)&d_data,        data_len + 1);
-    cudaMalloc((void**)&d_prefix,      MAX_PREFIX_LEN + 1);
+    cudaMalloc((void**)&d_prefix,      MAX_PREFIX_LEN + 2);
     cudaMalloc((void**)&d_found_nonce, sizeof(uint64_t));
     cudaMalloc((void**)&d_found_hash,  33);
     cudaMalloc((void**)&d_found_flag,  sizeof(int));
@@ -158,6 +178,14 @@ int main(int argc, char* argv[]) {
         );
 
         double mhs = r.total_hashes / r.elapsed_sec / 1e6;
+
+        if (r.timed_out) {
+            printf("\"%-8s\" | %15s | %s | %10.3f | %.1f  [TIMEOUT >%ds]\n",
+                   prefix_buf, "-", "--------------------------------", r.elapsed_sec, mhs, TIMEOUT_SEC);
+            fflush(stdout);
+            prefix_buf[plen] = '0';
+            break;  // no tiene sentido seguir con prefijos más largos
+        }
 
         printf("\"%-8s\" | %15llu | %s | %10.3f | %.1f\n",
                prefix_buf,
