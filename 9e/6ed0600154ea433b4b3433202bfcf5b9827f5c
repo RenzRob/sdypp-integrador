@@ -1,0 +1,49 @@
+pilar1-miner/gpu/hit7_compare.py
+  s_b615e77c8893aa::t_ffb2abcec5501e 1-141,145-174,177,180-207
+  s_b615e77c8893aa::t_12945809efed54 142-144
+  s_b615e77c8893aa::t_669571340dd3f6 175-176,178-179
+pilar1-miner/gpu/hit6_benchmark.cu
+  s_b615e77c8893aa::t_844925c7167a9f 153
+  s_b615e77c8893aa::t_35358a93ed8980 29-32
+  s_b615e77c8893aa::t_adebf0b2197f4c 182-189
+  s_b615e77c8893aa::t_bdc90f0812dc02 75,88,94,105-113,119,121-129
+pilar1-miner/gpu/hit6_plot.py
+  s_b615e77c8893aa::t_9ad0e0470173b8 1-8,10-23,25-58,60-65,67-71,75-78,88-107,109-114
+  s_b615e77c8893aa::t_075bc0aa4a5098 66,72-74,79-87
+  s_b615e77c8893aa::t_5d6c90834e011d 108
+  s_b615e77c8893aa::t_73689f04afd688 24,59
+  s_b615e77c8893aa::t_7b892a9ad7c7b0 9
+pilar1-miner/INFORME.md
+  s_b615e77c8893aa::t_7c5923f9a2b86d 11-12
+  s_b615e77c8893aa::t_0830e72592e3bc 162-167
+  s_b615e77c8893aa::t_82588b701228eb 140-159,168-170,202,206
+  s_b615e77c8893aa::t_48c2adc0b9ab37 15-76
+  s_b615e77c8893aa::t_bd4b9c1865432d 160-161,204-205
+  s_b615e77c8893aa::t_937ae9168edbc4 171-200
+  s_b615e77c8893aa::t_dac560bdf32f43 110-136
+  h_c044bf8701ab58 1-10,13-14,77-109,137-139,201,203
+pilar1-miner/gpu/md5.cuh
+  s_b615e77c8893aa::t_834f2cd9281b80 25-51
+  s_b615e77c8893aa::t_d54d3f96b07636 116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "9e6ed0600154ea433b4b3433202bfcf5b9827f5c",
+  "prompts": {},
+  "humans": {
+    "h_c044bf8701ab58": {
+      "author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  },
+  "sessions": {
+    "s_b615e77c8893aa": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "980d4d94-67c9-4166-8b64-854e5dfb62f2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
