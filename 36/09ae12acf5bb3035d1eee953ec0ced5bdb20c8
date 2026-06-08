@@ -1,0 +1,27 @@
+propuesta/PROPUESTA.md
+  h_c044bf8701ab58 1-133,135-229
+  s_67d36f4752c040::t_acf2e22e8e22a2 134
+README.md
+  h_c044bf8701ab58 41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3609ae12acf5bb3035d1eee953ec0ced5bdb20c8",
+  "prompts": {},
+  "humans": {
+    "h_c044bf8701ab58": {
+      "author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  },
+  "sessions": {
+    "s_67d36f4752c040": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9f58252a-5043-4da4-84d4-d5694291eb9c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
