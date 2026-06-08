@@ -38,7 +38,7 @@ Cada transferencia de entrada tiene la forma:
 
 ---
 
-## Decisión de arquitectura: una cadena por evento (Option B)
+## Decisión de arquitectura: una cadena por evento
 
 Cada evento tiene su propia blockchain en Redis, sus propias colas en RabbitMQ
 y sus propios workers asignados. Cuando el evento termina, su cadena se archiva.

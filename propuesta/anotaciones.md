@@ -1,0 +1,1 @@
+Tener en cuenta seguridad. Si se expone el puerto N publico para que se acceda desde afuera, sin justificacion, nos desaprueba.
