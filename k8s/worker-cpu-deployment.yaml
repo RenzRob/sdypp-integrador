@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-cpu
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker-cpu
+  template:
+    metadata:
+      labels:
+        app: worker-cpu
+    spec:
+      containers:
+        - name: worker-cpu
+          image: ticketchain/worker-cpu:latest
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: "2"
+              memory: "512Mi"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-cpu-hpa
+  namespace: ticketchain
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker-cpu
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

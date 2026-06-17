@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: transaction-pool
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: transaction-pool
+  template:
+    metadata:
+      labels:
+        app: transaction-pool
+    spec:
+      containers:
+        - name: transaction-pool
+          image: ticketchain/transaction-pool:latest
+          ports:
+            - containerPort: 8001
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: transaction-pool
+  namespace: ticketchain
+spec:
+  type: ClusterIP
+  selector:
+    app: transaction-pool
+  ports:
+    - port: 8001
+      targetPort: 8001

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketchain-config
+  namespace: ticketchain
+data:
+  REDIS_URL: "redis://redis:6379"
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  MINING_DIFFICULTY: "3"
+  NODE_ENV: "production"

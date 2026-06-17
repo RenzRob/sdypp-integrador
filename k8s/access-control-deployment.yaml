@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: access-control
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: access-control
+  template:
+    metadata:
+      labels:
+        app: access-control
+    spec:
+      containers:
+        - name: access-control
+          image: ticketchain/access-control:latest
+          ports:
+            - containerPort: 3004
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: access-control
+  namespace: ticketchain
+spec:
+  type: ClusterIP
+  selector:
+    app: access-control
+  ports:
+    - port: 3004
+      targetPort: 3004
