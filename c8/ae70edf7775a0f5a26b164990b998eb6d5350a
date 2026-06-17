@@ -1,0 +1,55 @@
+k8s/auth-deployment.yaml
+  s_6d5206b98daf53::t_eacf469989676c 1-38
+k8s/nct-deployment.yaml
+  s_6d5206b98daf53::t_bd3a40c4238811 1-38
+k8s/event-registry-deployment.yaml
+  s_6d5206b98daf53::t_7985802266672c 1-38
+k8s/transaction-api-deployment.yaml
+  s_6d5206b98daf53::t_f0e1b6fc7467e8 1-38
+k8s/frontend-deployment.yaml
+  s_6d5206b98daf53::t_83a265b01384b1 1-38
+k8s/nginx-deployment.yaml
+  s_6d5206b98daf53::t_186e655d0399e0 1-33
+nginx/nginx.conf
+  s_6d5206b98daf53::t_d10c0651a0a47f 1-86
+k8s/secrets.yaml
+  s_6d5206b98daf53::t_f4d4e853442d3a 1-8
+docker-compose.yml
+  s_6d5206b98daf53::t_ee465b52c32405 1-174
+k8s/access-control-deployment.yaml
+  s_6d5206b98daf53::t_c3fae049258e75 1-38
+k8s/namespace.yaml
+  s_6d5206b98daf53::t_201a9051bf631d 1-4
+k8s/ingress.yaml
+  s_6d5206b98daf53::t_a253a1c56ddc1b 1-26
+k8s/worker-cpu-deployment.yaml
+  s_6d5206b98daf53::t_41b10d02572da0 1-50
+k8s/configmap.yaml
+  s_6d5206b98daf53::t_346bdf318682ae 1-10
+nginx/Dockerfile
+  s_6d5206b98daf53::t_a159f8a7509f6c 1-2
+k8s/rabbitmq-deployment.yaml
+  s_6d5206b98daf53::t_7b207fe534789c 1-58
+k8s/redis-deployment.yaml
+  s_6d5206b98daf53::t_335a255325a1e0 1-54
+.env.example
+  s_6d5206b98daf53::t_42e8dff853a722 1-5
+k8s/transaction-pool-deployment.yaml
+  s_6d5206b98daf53::t_344988b9ba1ffc 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "c8ae70edf7775a0f5a26b164990b998eb6d5350a",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
