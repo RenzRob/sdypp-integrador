@@ -71,19 +71,32 @@ class NCT:
         channel.exchange_declare(exchange="mining_results", exchange_type="direct", durable=True)
         channel.exchange_declare(exchange="nct_results", exchange_type="direct", durable=True)
 
+    def _publish_task(self, task: dict):
+        """Open a short-lived connection to publish a mining task (thread-safe)."""
+        try:
+            conn = self._connect_rabbitmq()
+            ch = conn.channel()
+            self._setup_exchanges(ch)
+            ch.basic_publish(
+                exchange="mining",
+                routing_key="task.global",
+                body=json.dumps(task),
+                properties=pika.BasicProperties(delivery_mode=2),
+            )
+            conn.close()
+        except Exception as e:
+            logger.error(f"Failed to publish mining task: {e}")
+
     def start(self):
         logger.info("NCT starting...")
         conn_tx = self._connect_rabbitmq()
         conn_results = self._connect_rabbitmq()
-        conn_publish = self._connect_rabbitmq()
 
         ch_tx = conn_tx.channel()
         ch_results = conn_results.channel()
-        self.channel_publish = conn_publish.channel()
 
         self._setup_exchanges(ch_tx)
         self._setup_exchanges(ch_results)
-        self._setup_exchanges(self.channel_publish)
 
         # Queue for incoming transactions
         ch_tx.queue_declare(queue="transactions_q", durable=True)
@@ -190,15 +203,8 @@ class NCT:
         }
 
         logger.info(f"Publishing mining task {task_id} for event {event_id} with {len(txs)} txs")
-        try:
-            self.channel_publish.basic_publish(
-                exchange="mining",
-                routing_key="task.global",
-                body=json.dumps(task),
-                properties=pika.BasicProperties(delivery_mode=2),
-            )
-        except Exception as e:
-            logger.error(f"Failed to publish mining task: {e}")
+        pub_thread = threading.Thread(target=self._publish_task, args=(task,), daemon=True)
+        pub_thread.start()
 
     def _on_mining_result(self, ch, method, properties, body):
         try:
