@@ -1,0 +1,29 @@
+.env.example
+  s_6d5206b98daf53::t_f1870e2b91358b 1-20
+run_local.sh
+  s_6d5206b98daf53::t_444ef89b547569 1-205
+services/nct/src/nct.py
+  s_6d5206b98daf53::t_fe36cdf3ba01b7 1-164
+services/nct/requirements.txt
+  s_6d5206b98daf53::t_e36afd54259ce9 1-2
+docker-compose.yml
+  s_6d5206b98daf53::t_ea4cf1c91126b9 1-211
+services/nct/Dockerfile
+  s_6d5206b98daf53::t_e36afd54259ce9 1-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "d4005930311014ff085e9d43065f1467d9afeed4",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
