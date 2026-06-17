@@ -1,0 +1,19 @@
+docker-compose.yml
+  s_6d5206b98daf53::t_a6f4813f571204 105-110
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a83d05644228e0874906164aa88bcad19f580dfa",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
