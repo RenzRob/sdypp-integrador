@@ -1,0 +1,174 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - ticketchain-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - ticketchain-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "15672:15672"
+
+  frontend:
+    build:
+      context: ./frontend
+    env_file: .env
+    ports:
+      - "5173:5173"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+    env_file: .env
+    ports:
+      - "3001:3001"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  event-registry:
+    build:
+      context: ./services/event-registry
+    env_file: .env
+    ports:
+      - "3002:3002"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  transaction-api:
+    build:
+      context: ./services/transaction-api
+    env_file: .env
+    ports:
+      - "3003:3003"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  access-control:
+    build:
+      context: ./services/access-control
+    env_file: .env
+    ports:
+      - "3004:3004"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  status-api:
+    build:
+      context: ./services/status-api
+    env_file: .env
+    ports:
+      - "3005:3005"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  nct:
+    build:
+      context: ./services/nct
+    env_file: .env
+    ports:
+      - "8000:8000"
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  transaction-pool:
+    build:
+      context: ./services/transaction-pool
+    env_file: .env
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  worker-cpu:
+    build:
+      context: ./services/worker-cpu
+    env_file: .env
+    networks:
+      - ticketchain-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - "80:80"
+    networks:
+      - ticketchain-net
+    depends_on:
+      - frontend
+      - auth-service
+      - event-registry
+      - transaction-api
+      - access-control
+      - status-api
+
+volumes:
+  redis_data:
+  rabbitmq_data:
+
+networks:
+  ticketchain-net:
+    driver: bridge

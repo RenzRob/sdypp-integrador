@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-api
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: status-api
+  template:
+    metadata:
+      labels:
+        app: status-api
+    spec:
+      containers:
+        - name: status-api
+          image: ticketchain/status-api:latest
+          ports:
+            - containerPort: 3005
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: status-api
+  namespace: ticketchain
+spec:
+  type: ClusterIP
+  selector:
+    app: status-api
+  ports:
+    - port: 3005
+      targetPort: 3005

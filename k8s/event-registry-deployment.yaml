@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-registry
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-registry
+  template:
+    metadata:
+      labels:
+        app: event-registry
+    spec:
+      containers:
+        - name: event-registry
+          image: ticketchain/event-registry:latest
+          ports:
+            - containerPort: 3002
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: event-registry
+  namespace: ticketchain
+spec:
+  type: ClusterIP
+  selector:
+    app: event-registry
+  ports:
+    - port: 3002
+      targetPort: 3002

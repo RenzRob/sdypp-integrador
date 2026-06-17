@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nct
+  namespace: ticketchain
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nct
+  template:
+    metadata:
+      labels:
+        app: nct
+    spec:
+      containers:
+        - name: nct
+          image: ticketchain/nct:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+            - secretRef:
+                name: ticketchain-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nct
+  namespace: ticketchain
+spec:
+  type: ClusterIP
+  selector:
+    app: nct
+  ports:
+    - port: 8000
+      targetPort: 8000
