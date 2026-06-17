@@ -102,6 +102,12 @@ services:
     build:
       context: ./services/status-api
     env_file: .env
+    environment:
+      - AUTH_HOST=auth-service
+      - EVENTS_HOST=event-registry
+      - TRANSACTIONS_HOST=transaction-api
+      - ACCESS_HOST=access-control
+      - NCT_HOST=nct
     ports:
       - "3005:3005"
     networks:
