@@ -1,0 +1,20 @@
+services/nct/nct.py
+  s_6d5206b98daf53::t_8ea4bf170ff808 74-89
+  s_6d5206b98daf53::t_569175ce699bcd 206-207
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "b731bbfa497ac9750cc3b9395073e40352fd4ea0",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
