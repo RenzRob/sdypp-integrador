@@ -1,0 +1,141 @@
+frontend/src/pages/Register.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-182
+services/worker-cpu/requirements.txt
+  s_6d5206b98daf53::t_4ed868706dda75 1-2
+frontend/index.html
+  s_6d5206b98daf53::t_95fa0356431a2b 1-12
+services/event-registry/package.json
+  s_6d5206b98daf53::t_255a58a066a8c9 1-17
+services/transaction-api/package.json
+  s_6d5206b98daf53::t_255a58a066a8c9 1-18
+frontend/src/components/AdminRoute.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-18
+services/nct/blockchain.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-18
+services/transaction-pool/Dockerfile
+  s_6d5206b98daf53::t_4ed868706dda75 1-6
+frontend/src/pages/Events.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-73
+services/access-control/package.json
+  s_6d5206b98daf53::t_255a58a066a8c9 1-17
+services/access-control/src/lib/redis.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-13
+services/transaction-pool/main.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-5
+services/auth-service/Dockerfile
+  s_6d5206b98daf53::t_255a58a066a8c9 1-7
+services/nct/requirements.txt
+  s_6d5206b98daf53::t_4ed868706dda75 1-6
+frontend/src/components/TicketCard.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-58
+frontend/src/context/AuthContext.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-105
+services/access-control/src/routes/access.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-91
+frontend/src/pages/admin/CreateEvent.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-329
+frontend/src/components/EventCard.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-76
+services/transaction-api/src/lib/auth.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-34
+services/nct/Dockerfile
+  s_6d5206b98daf53::t_4ed868706dda75 1-7
+services/status-api/package.json
+  s_6d5206b98daf53::t_255a58a066a8c9 1-15
+services/nct/main.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-37
+frontend/src/index.css
+  s_6d5206b98daf53::t_95fa0356431a2b 1-1045
+services/transaction-api/src/lib/redis.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-13
+services/transaction-api/src/routes/transactions.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-252
+services/transaction-api/Dockerfile
+  s_6d5206b98daf53::t_255a58a066a8c9 1-7
+services/access-control/src/app.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-29
+services/access-control/src/lib/auth.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-34
+services/auth-service/package.json
+  s_6d5206b98daf53::t_255a58a066a8c9 1-18
+services/worker-cpu/main.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-132
+services/status-api/src/app.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-129
+frontend/vite.config.js
+  s_6d5206b98daf53::t_95fa0356431a2b 1-16
+frontend/src/components/ProtectedRoute.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-14
+services/auth-service/src/app.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-30
+services/transaction-pool/pool.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-300
+frontend/src/pages/EventDetail.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-252
+frontend/Dockerfile
+  s_6d5206b98daf53::t_95fa0356431a2b 1-7
+services/event-registry/Dockerfile
+  s_6d5206b98daf53::t_255a58a066a8c9 1-7
+services/nct/nct.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-256
+frontend/src/pages/MyTickets.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-282
+frontend/src/main.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-16
+frontend/package.json
+  s_6d5206b98daf53::t_95fa0356431a2b 1-18
+services/auth-service/src/lib/redis.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-13
+services/access-control/Dockerfile
+  s_6d5206b98daf53::t_255a58a066a8c9 1-7
+services/auth-service/src/middleware/auth.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-34
+services/transaction-pool/requirements.txt
+  s_6d5206b98daf53::t_4ed868706dda75 1-4
+frontend/src/App.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-62
+services/event-registry/src/app.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-29
+services/auth-service/src/routes/auth.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-136
+services/event-registry/src/lib/redis.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-13
+frontend/src/components/BlockchainViewer.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-112
+frontend/src/pages/Login.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-103
+services/transaction-api/src/lib/rabbitmq.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-50
+services/worker-cpu/miner.py
+  s_6d5206b98daf53::t_4ed868706dda75 1-35
+frontend/src/components/Navbar.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-80
+services/event-registry/src/routes/events.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-213
+services/transaction-api/src/app.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-32
+frontend/src/pages/admin/Dashboard.jsx
+  s_6d5206b98daf53::t_95fa0356431a2b 1-209
+services/worker-cpu/Dockerfile
+  s_6d5206b98daf53::t_4ed868706dda75 1-6
+services/status-api/Dockerfile
+  s_6d5206b98daf53::t_255a58a066a8c9 1-7
+services/event-registry/src/lib/auth.js
+  s_6d5206b98daf53::t_255a58a066a8c9 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "927a196b8d38e4a0aed8ae0a8aabfc1249239bca",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
