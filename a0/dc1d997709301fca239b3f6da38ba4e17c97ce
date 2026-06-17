@@ -1,0 +1,60 @@
+frontend/src/components/TicketCard.jsx
+  s_6d5206b98daf53::t_3626904f9c70f0 1-58
+frontend/src/pages/admin/CreateEvent.jsx
+  s_6d5206b98daf53::t_2da648c69b17e7 1-329
+frontend/src/pages/Events.jsx
+  s_6d5206b98daf53::t_dd7a9b52017611 1-73
+frontend/package.json
+  s_6d5206b98daf53::t_9ed695161211b3 1-18
+frontend/src/App.jsx
+  s_6d5206b98daf53::t_754fafcd7c0a81 1-62
+frontend/src/components/EventCard.jsx
+  s_6d5206b98daf53::t_215fef4d7f49e1 1-76
+frontend/src/pages/EventDetail.jsx
+  s_6d5206b98daf53::t_3d7b930c87ce79 1-252
+frontend/src/pages/Register.jsx
+  s_6d5206b98daf53::t_fed9c0f8799881 1-67,69-182
+  s_6d5206b98daf53::t_7035cd5225fce3 68
+frontend/src/pages/MyTickets.jsx
+  s_6d5206b98daf53::t_1118f820585e04 1-282
+frontend/src/components/AdminRoute.jsx
+  s_6d5206b98daf53::t_b7b4c9f6137e6b 1-18
+frontend/Dockerfile
+  s_6d5206b98daf53::t_bfb4d07a614cb5 1-7
+frontend/vite.config.js
+  s_6d5206b98daf53::t_62b9222b43efe3 1-16
+frontend/src/components/Navbar.jsx
+  s_6d5206b98daf53::t_dafd81193045b1 1-80
+frontend/src/index.css
+  s_6d5206b98daf53::t_c76d5e409aaaee 1-1045
+frontend/src/context/AuthContext.jsx
+  s_6d5206b98daf53::t_9d0f5f3013cf97 1-105
+frontend/src/components/ProtectedRoute.jsx
+  s_6d5206b98daf53::t_686794fc9de9ff 1-14
+frontend/index.html
+  s_6d5206b98daf53::t_fa72333df78dc3 1-12
+frontend/src/pages/Login.jsx
+  s_6d5206b98daf53::t_977c01a45d1466 1-103
+frontend/src/main.jsx
+  s_6d5206b98daf53::t_c2afa200c41beb 1-16
+frontend/src/components/BlockchainViewer.jsx
+  s_6d5206b98daf53::t_9449fa58f3b2d7 1-112
+frontend/src/pages/admin/Dashboard.jsx
+  s_6d5206b98daf53::t_89ba1e44ca7c55 1-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a0dc1d997709301fca239b3f6da38ba4e17c97ce",
+  "prompts": {},
+  "sessions": {
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
