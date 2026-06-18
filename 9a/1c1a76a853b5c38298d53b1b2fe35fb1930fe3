@@ -1,0 +1,120 @@
+frontend/src/pages/Register.jsx
+  s_53472514a78f81::t_788c26e723e60e 123
+  s_53472514a78f81::t_c0637e97cdf17e 55,62-64,66-80
+  s_53472514a78f81::t_557c40f2e70981 28
+backend/auth-service/src/lib/db.js
+  s_53472514a78f81::t_94de9c1ad97eb3 1-15,17-23
+  s_53472514a78f81::t_9decd51bedac84 16
+frontend/src/context/AuthContext.jsx
+  s_53472514a78f81::t_ad1c819c47b5e5 47
+  s_53472514a78f81::t_6f27a227a7ac32 64
+frontend/src/pages/admin/CreateEvent.jsx
+  s_53472514a78f81::t_6c91c12e7bed4e 128,309
+  s_53472514a78f81::t_f8af1c05124db8 44-45
+  s_53472514a78f81::t_6ae5d33b4d3613 203,209
+.env
+  s_6d5206b98daf53::t_218df36041ec93 1-5
+backend/auth-service/src/routes/auth.js
+  s_53472514a78f81::t_a9f055afb79400 55
+  s_53472514a78f81::t_83cbe586e089b4 9-49,57-129
+backend/auth-service/src/app.js
+  s_53472514a78f81::t_d94c3032aa47ed 4-35
+frontend/src/components/EventCard.jsx
+  s_53472514a78f81::t_31e204de47e0be 32-33,35,42-44
+  s_53472514a78f81::t_0bb27bf27f1803 59-62
+iac/k8s/secrets.yaml
+  s_53472514a78f81::t_86c1c362278bd7 8-11
+frontend/src/App.jsx
+  s_53472514a78f81::t_3d6335c25f6b6b 42,45-49
+  s_53472514a78f81::t_7298e5c5a683f9 12
+  s_53472514a78f81::t_e622635b69e2c9 13
+  s_53472514a78f81::t_ec7b2836fc3d0b 50-53
+frontend/src/pages/Events.jsx
+  s_53472514a78f81::t_bc104e39d5968a 3,6,10,26,43-46,51-66,80,82-83,87,89
+run_local.sh
+  s_53472514a78f81::t_d89b6bd0c15aa1 91
+  s_53472514a78f81::t_4760067022efd4 74-77
+  s_53472514a78f81::t_6c44174ef9c3dd 1-73,78-90,92-124,127-128
+  s_53472514a78f81::t_4d46f2d8b12bcc 125-126
+frontend/src/pages/EventDetail.jsx
+  s_53472514a78f81::t_9555a9d76dc700 127-139,142,146
+  s_53472514a78f81::t_551921efabeda3 91-92
+  s_53472514a78f81::t_a1fa2897f8dac8 77-84
+  s_53472514a78f81::t_7d9df66381502f 40-41
+  s_53472514a78f81::t_8df6d73feb6967 37,54,73,94,100,107,113,116,123,174-176,178,186,196,208,218,221,232,250,257-258,260,262-264,266-267,270-290
+  s_53472514a78f81::t_f379393f788069 119
+  s_53472514a78f81::t_bccf4cefdf7a34 31
+  s_53472514a78f81::t_87f59e249e775b 182-185,187-195,197-200
+  s_53472514a78f81::t_2a14ee3e6ec5ab 294-336
+backend/auth-service/package.json
+  s_53472514a78f81::t_c6f778bcd7be8b 15
+backend/event-registry/src/routes/events.js
+  s_53472514a78f81::t_f08b15333751b4 118
+  s_53472514a78f81::t_654f872c5bb1fe 153-155
+  s_53472514a78f81::t_343df6be0a4fb8 156-157
+  s_53472514a78f81::t_148df3169cbb3d 165-210
+  s_53472514a78f81::t_49f7c85eeb9fc7 28-30
+  s_53472514a78f81::t_45c13c80a7dd41 23-27,31-32
+  s_53472514a78f81::t_e99d4f1920864c 107-117,119-120
+backend/transaction-api/src/routes/transactions.js
+  s_53472514a78f81::t_80175fdd05ad2a 360-361
+  s_53472514a78f81::t_cf1c992168e2ff 81
+  s_53472514a78f81::t_66c831c1c95772 99-283
+  s_53472514a78f81::t_c6a7f2240f06de 48-50,52-66
+  s_53472514a78f81::t_916c35ae4cf7c4 396-398,402-404,408-409
+  s_53472514a78f81::t_ac2188462377f8 82
+  s_53472514a78f81::t_1acc40861678c6 25,40-47,51,67-68,88
+  s_53472514a78f81::t_9b74a4143aefd8 34-37
+  s_53472514a78f81::t_b918bf087b1357 376-395,399-401,405-407,410
+  s_53472514a78f81::t_97ef37e71df107 309-312
+iac/k8s/auth-deployment.yaml
+  s_53472514a78f81::t_9322331a9b75e3 24-41
+iac/k8s/postgres-deployment.yaml
+  s_53472514a78f81::t_22d6521c4bbede 1-70
+frontend/src/index.css
+  s_53472514a78f81::t_d3ecc8f78b9546 541-545
+  s_53472514a78f81::t_3403eeb50335d2 546-550
+frontend/src/pages/MyTickets.jsx
+  s_53472514a78f81::t_a806a9581e5601 204-205
+  s_53472514a78f81::t_af6204f6462341 13,17-18,24-27,30,36-37,43,52,60,69,83-86,88,97,100,108,110-113,115,117,120-129,131-141,144,146,150-157,162,164-165,174,186,189,191-194,199,212-213,218-239,245-250
+frontend/src/components/Navbar.jsx
+  s_53472514a78f81::t_eda073dee6d097 29
+  s_53472514a78f81::t_1a4b521f9bc531 47,50
+docker-compose.yml
+  s_53472514a78f81::t_1600d4a3de3da6 4-19
+  s_53472514a78f81::t_aeda9394db40df 63,79,93,107,121,141,155,167,179
+  s_53472514a78f81::t_698d4385d14cf5 65-66,72
+  s_53472514a78f81::t_3998404063cd42 195
+frontend/src/pages/admin/PlatformStatus.jsx
+  s_53472514a78f81::t_9eccedb7c7e222 128
+  s_53472514a78f81::t_72002d92da6db5 22,26-28,31,35-36,41,45,47,49,55-56,82-83,89-96,99-103,105-106,111-112,115,118,122-124
+  s_53472514a78f81::t_8155709c66a033 4,12-16
+  s_53472514a78f81::t_4a0dc3c106b9b5 57-71,74-79
+frontend/src/pages/admin/EditEvent.jsx
+  s_53472514a78f81::t_2720ad4fa9ecd0 1-168,174-199
+  s_53472514a78f81::t_6108e37a739066 169-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "9a1c1a76a853b5c38298d53b1b2fe35fb1930fe3",
+  "prompts": {},
+  "sessions": {
+    "s_53472514a78f81": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1c9cd5e9-70f4-4a21-b5f0-801f1fef4b1f",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_6d5206b98daf53": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b8820f7e-a3f6-4929-9ec0-41b5d1a2b0ab",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
