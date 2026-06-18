@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
-const redis = require('../lib/redis');
+const { pool } = require('../lib/db');
 const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -45,22 +45,21 @@ router.post(
     const { email, password, role = 'user' } = req.body;
 
     try {
-      const existingId = await redis.get(`user:email:${email}`);
-      if (existingId) {
+      const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+      if (existing.rows.length > 0) {
         return res.status(409).json({ error: 'Email already registered' });
       }
 
       const id = uuidv4();
       const password_hash = await bcrypt.hash(password, 12);
-      const wallet_address = generateWalletAddress(id);
-      const created_at = new Date().toISOString();
+      const wallet_address = role === 'user' ? generateWalletAddress(id) : null;
 
-      const user = { id, email, password_hash, role, wallet_address, created_at };
+      await pool.query(
+        'INSERT INTO users (id, email, password_hash, role, wallet_address) VALUES ($1, $2, $3, $4, $5)',
+        [id, email, password_hash, role, wallet_address]
+      );
 
-      await redis.set(`user:${id}`, JSON.stringify(user));
-      await redis.set(`user:email:${email}`, id);
-
-      const token = signToken(user);
+      const token = signToken({ id, email, role, wallet_address });
 
       return res.status(201).json({
         token,
@@ -89,17 +88,16 @@ router.post(
     const { email, password } = req.body;
 
     try {
-      const userId = await redis.get(`user:email:${email}`);
-      if (!userId) {
+      const result = await pool.query(
+        'SELECT id, email, password_hash, role, wallet_address FROM users WHERE email = $1',
+        [email]
+      );
+
+      if (result.rows.length === 0) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      const raw = await redis.get(`user:${userId}`);
-      if (!raw) {
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      const user = JSON.parse(raw);
+      const user = result.rows[0];
       const match = await bcrypt.compare(password, user.password_hash);
       if (!match) {
         return res.status(401).json({ error: 'Invalid credentials' });
@@ -121,12 +119,14 @@ router.post(
 // GET /auth/me
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const raw = await redis.get(`user:${req.user.id}`);
-    if (!raw) {
+    const result = await pool.query(
+      'SELECT id, email, role, wallet_address, created_at FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });
     }
-    const { password_hash, ...user } = JSON.parse(raw);
-    return res.json({ user });
+    return res.json({ user: result.rows[0] });
   } catch (err) {
     console.error('[me] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });

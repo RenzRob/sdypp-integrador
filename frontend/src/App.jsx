@@ -8,8 +8,9 @@ import Register from './pages/Register.jsx'
 import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
 import MyTickets from './pages/MyTickets.jsx'
-import Dashboard from './pages/admin/Dashboard.jsx'
 import CreateEvent from './pages/admin/CreateEvent.jsx'
+import EditEvent from './pages/admin/EditEvent.jsx'
+import PlatformStatus from './pages/admin/PlatformStatus.jsx'
 
 export default function App() {
   return (
@@ -30,18 +31,26 @@ export default function App() {
           }
         />
         <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <Dashboard />
-            </AdminRoute>
-          }
-        />
-        <Route
           path="/admin/create-event"
           element={
             <AdminRoute>
               <CreateEvent />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/events/:id/edit"
+          element={
+            <AdminRoute>
+              <EditEvent />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/platform-status"
+          element={
+            <AdminRoute>
+              <PlatformStatus />
             </AdminRoute>
           }
         />

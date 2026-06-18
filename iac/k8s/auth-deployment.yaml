@@ -21,8 +21,24 @@ spec:
           envFrom:
             - configMapRef:
                 name: ticketchain-config
-            - secretRef:
-                name: ticketchain-secrets
+          env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: JWT_SECRET
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/ticketchain"
 ---
 apiVersion: v1
 kind: Service

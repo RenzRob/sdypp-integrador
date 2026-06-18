@@ -20,11 +20,16 @@ router.get('/', async (req, res) => {
     const events = [];
     for (const id of eventIds) {
       const raw = await redis.get(`event:${id}`);
-      if (raw) {
-        const ev = JSON.parse(raw);
-        const { genesis_block_hash, ...safeEvent } = ev;
-        events.push(safeEvent);
-      }
+      if (!raw) continue;
+
+      const ev = JSON.parse(raw);
+      const { genesis_block_hash, ...safeEvent } = ev;
+
+      const available_tickets = parseInt(
+        (await redis.get(`event:${id}:available_tickets`)) || '0'
+      );
+
+      events.push({ ...safeEvent, available_tickets });
     }
 
     return res.json(events);
@@ -99,12 +104,20 @@ router.post(
 
       await redis.set(`event:${event_id}`, JSON.stringify(event));
       await redis.lpush('events:list', event_id);
+      await redis.set(`event:${event_id}:available_tickets`, String(total_tickets));
 
-      // Initialize tickets
-      for (let i = 0; i < total_tickets; i++) {
-        const ticket_id = `T${String(i + 1).padStart(4, '0')}`;
-        await redis.set(`ticket:${event_id}:${ticket_id}:owner`, 'null');
-        await redis.set(`ticket:${event_id}:${ticket_id}:resales`, '0');
+      // Initialize tickets in batches via pipeline to avoid blocking on large counts
+      const BATCH_SIZE = 1000;
+      for (let batch = 0; batch < total_tickets; batch += BATCH_SIZE) {
+        const pipeline = redis.pipeline();
+        const end = Math.min(batch + BATCH_SIZE, total_tickets);
+        for (let i = batch; i < end; i++) {
+          const ticket_id = `T${String(i + 1).padStart(6, '0')}`;
+          pipeline.set(`ticket:${event_id}:${ticket_id}:owner`, 'null');
+          pipeline.set(`ticket:${event_id}:${ticket_id}:resales`, '0');
+          pipeline.rpush(`event:${event_id}:tickets:pool`, ticket_id);
+        }
+        await pipeline.exec();
       }
 
       // Save genesis block to blockchain
@@ -137,9 +150,59 @@ router.get(
       const event = JSON.parse(raw);
       const blockchain_length = await redis.llen(`blockchain:${req.params.id}`);
 
-      return res.json({ ...event, blockchain_length });
+      const available_tickets = parseInt(
+        (await redis.get(`event:${req.params.id}:available_tickets`)) || '0'
+      );
+
+      return res.json({ ...event, available_tickets, blockchain_length });
     } catch (err) {
       console.error('[GET /events/:id] Error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// PATCH /events/:id (admin only — creator)
+router.patch(
+  '/:id',
+  requireAdmin,
+  [
+    param('id').isUUID().withMessage('Invalid event ID'),
+    body('date').optional().isISO8601().withMessage('Valid ISO8601 date required'),
+    body('status').optional().isIn(['active', 'suspended']).withMessage('status must be active or suspended'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
+
+    const { date, status } = req.body;
+    if (!date && !status) {
+      return res.status(400).json({ error: 'Nothing to update' });
+    }
+
+    try {
+      const raw = await redis.get(`event:${req.params.id}`);
+      if (!raw) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+
+      const event = JSON.parse(raw);
+
+      if (event.creator_id !== req.user.id) {
+        return res.status(403).json({ error: 'Only the event creator can edit it' });
+      }
+
+      if (date) event.date = date;
+      if (status) event.status = status;
+
+      await redis.set(`event:${req.params.id}`, JSON.stringify(event));
+
+      const { genesis_block_hash, ...safeEvent } = event;
+      return res.json(safeEvent);
+    } catch (err) {
+      console.error('[PATCH /events/:id] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

@@ -1,6 +1,22 @@
 version: "3.9"
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ticketchain
+      POSTGRES_PASSWORD: ticketchain
+      POSTGRES_DB: ticketchain
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ticketchain-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketchain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes
@@ -44,21 +60,23 @@ services:
 
   auth-service:
     build:
-      context: ./services/auth-service
+      context: ./backend/auth-service
     env_file: .env
+    environment:
+      - DATABASE_URL=postgresql://ticketchain:ticketchain@postgres:5432/ticketchain
     ports:
       - "3001:3001"
     networks:
       - ticketchain-net
     depends_on:
-      redis:
+      postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
 
   event-registry:
     build:
-      context: ./services/event-registry
+      context: ./backend/event-registry
     env_file: .env
     ports:
       - "3002:3002"
@@ -72,7 +90,7 @@ services:
 
   transaction-api:
     build:
-      context: ./services/transaction-api
+      context: ./backend/transaction-api
     env_file: .env
     ports:
       - "3003:3003"
@@ -86,7 +104,7 @@ services:
 
   access-control:
     build:
-      context: ./services/access-control
+      context: ./backend/access-control
     env_file: .env
     ports:
       - "3004:3004"
@@ -100,7 +118,7 @@ services:
 
   status-api:
     build:
-      context: ./services/status-api
+      context: ./backend/status-api
     env_file: .env
     environment:
       - AUTH_HOST=auth-service
@@ -120,7 +138,7 @@ services:
 
   nct:
     build:
-      context: ./services/nct
+      context: ./backend/nct
     env_file: .env
     ports:
       - "8000:8000"
@@ -134,7 +152,7 @@ services:
 
   transaction-pool:
     build:
-      context: ./services/transaction-pool
+      context: ./backend/transaction-pool
     env_file: .env
     networks:
       - ticketchain-net
@@ -146,7 +164,7 @@ services:
 
   worker-cpu:
     build:
-      context: ./services/worker-cpu
+      context: ./backend/worker-cpu
     env_file: .env
     networks:
       - ticketchain-net
@@ -158,7 +176,7 @@ services:
 
   nginx:
     build:
-      context: ./nginx
+      context: ./iac/nginx
     ports:
       - "80:80"
     networks:
@@ -174,6 +192,7 @@ services:
 volumes:
   redis_data:
   rabbitmq_data:
+  postgres_data:
 
 networks:
   ticketchain-net:

@@ -44,7 +44,7 @@ export function AuthProvider({ children }) {
     const data = await res.json()
 
     if (!res.ok) {
-      throw new Error(data.detail || data.message || 'Error al iniciar sesión')
+      throw new Error(data.error || data.detail || data.message || 'Error al iniciar sesión')
     }
 
     saveSession(data.user, data.token)
@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
     const data = await res.json()
 
     if (!res.ok) {
-      throw new Error(data.detail || data.message || 'Error al registrarse')
+      throw new Error(data.error || data.detail || data.message || 'Error al registrarse')
     }
 
     return data

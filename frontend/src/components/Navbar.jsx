@@ -26,7 +26,7 @@ export default function Navbar() {
             Eventos
           </NavLink>
 
-          {user && (
+          {user && !isAdmin && (
             <NavLink
               to="/my-tickets"
               className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
@@ -38,17 +38,16 @@ export default function Navbar() {
           {isAdmin && (
             <>
               <NavLink
-                to="/admin"
-                className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
-                end
-              >
-                Dashboard
-              </NavLink>
-              <NavLink
                 to="/admin/create-event"
                 className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
               >
                 Crear Evento
+              </NavLink>
+              <NavLink
+                to="/admin/platform-status"
+                className={({ isActive }) => `navbar-link${isActive ? ' active' : ''}`}
+              >
+                Estado de plataforma
               </NavLink>
             </>
           )}

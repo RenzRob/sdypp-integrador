@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config();
 const express = require('express');
+const { initSchema } = require('./lib/db');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,10 +22,14 @@ app.get('/ping', (req, res) => res.json({ status: 'ok', service: 'auth-service' 
 const authRoutes = require('./routes/auth');
 app.use('/auth', authRoutes);
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error('[Unhandled]', err.message);
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => console.log(`auth-service running on ${PORT}`));
+initSchema()
+  .then(() => app.listen(PORT, () => console.log(`auth-service running on ${PORT}`)))
+  .catch((err) => {
+    console.error('[Startup] DB init failed:', err.message);
+    process.exit(1);
+  });

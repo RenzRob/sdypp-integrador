@@ -25,7 +25,7 @@ export default function Register() {
   const validate = () => {
     if (!email.trim()) return 'El email es requerido.'
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return 'Email inválido.'
-    if (password.length < 6) return 'La contraseña debe tener al menos 6 caracteres.'
+    if (password.length < 8) return 'La contraseña debe tener al menos 8 caracteres.'
     if (password !== confirmPassword) return 'Las contraseñas no coinciden.'
     return null
   }
@@ -52,24 +52,32 @@ export default function Register() {
   }
 
   if (registered) {
+    const isAdmin = registered.user?.role === 'admin'
     return (
       <main>
         <div className="form-container">
           <h1>¡Registro exitoso!</h1>
           <p className="form-subtitle">Tu cuenta fue creada correctamente</p>
 
-          <div className="alert alert-success">
-            Cuenta creada. Tu wallet fue generada automáticamente.
-          </div>
-
-          {registered.wallet_address && (
-            <div className="wallet-box">
-              <p>Tu wallet address:</p>
-              <div className="wallet-address">{registered.wallet_address}</div>
-              <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Guardá esta dirección. Es tu identidad en la blockchain de TicketChain.
-              </p>
+          {isAdmin ? (
+            <div className="alert alert-success">
+              Cuenta de administrador creada.
             </div>
+          ) : (
+            <>
+              <div className="alert alert-success">
+                Cuenta creada. Tu wallet fue generada automáticamente.
+              </div>
+              {registered.user?.wallet_address && (
+                <div className="wallet-box">
+                  <p>Tu wallet address:</p>
+                  <div className="wallet-address">{registered.user.wallet_address}</div>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Guardá esta dirección. Es tu identidad en la blockchain de TicketChain.
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           <div style={{ marginTop: '1.5rem' }}>
@@ -112,7 +120,7 @@ export default function Register() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               autoComplete="new-password"
               required
             />

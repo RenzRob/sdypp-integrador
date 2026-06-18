@@ -41,8 +41,8 @@ export default function CreateEvent() {
     if (!form.venue.trim()) return 'El lugar es requerido.'
 
     const tickets = parseInt(form.total_tickets)
-    if (isNaN(tickets) || tickets < 1 || tickets > 1000) {
-      return 'La cantidad de tickets debe estar entre 1 y 1000.'
+    if (isNaN(tickets) || tickets < 1 || tickets > 100000) {
+      return 'La cantidad de tickets debe estar entre 1 y 100.000.'
     }
 
     const price = parseFloat(form.price)
@@ -125,7 +125,7 @@ export default function CreateEvent() {
       <div style={{ maxWidth: '680px', margin: '0 auto' }}>
         <div className="page-header">
           <h1>Crear Evento</h1>
-          <Link to="/admin" className="btn btn-secondary btn-sm">
+          <Link to="/events" className="btn btn-secondary btn-sm">
             ← Dashboard
           </Link>
         </div>
@@ -200,13 +200,13 @@ export default function CreateEvent() {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="total_tickets">Cantidad de tickets * (1–1000)</label>
+                <label htmlFor="total_tickets">Cantidad de tickets *</label>
                 <input
                   id="total_tickets"
                   name="total_tickets"
                   type="number"
                   min="1"
-                  max="1000"
+                  max="100000"
                   value={form.total_tickets}
                   onChange={handleChange}
                   placeholder="Ej: 200"
@@ -306,7 +306,7 @@ export default function CreateEvent() {
           </div>
 
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <Link to="/admin" className="btn btn-secondary">
+            <Link to="/events" className="btn btn-secondary">
               Cancelar
             </Link>
             <button
