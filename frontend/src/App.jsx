@@ -8,6 +8,7 @@ import Register from './pages/Register.jsx'
 import Events from './pages/Events.jsx'
 import EventDetail from './pages/EventDetail.jsx'
 import MyTickets from './pages/MyTickets.jsx'
+import Scan from './pages/Scan.jsx'
 import CreateEvent from './pages/admin/CreateEvent.jsx'
 import EditEvent from './pages/admin/EditEvent.jsx'
 import PlatformStatus from './pages/admin/PlatformStatus.jsx'
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/events" element={<Events />} />
         <Route path="/events/:id" element={<EventDetail />} />
+        <Route path="/scan" element={<Scan />} />
         <Route
           path="/my-tickets"
           element={

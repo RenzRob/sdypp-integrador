@@ -65,6 +65,7 @@ export default function CreateEvent() {
   const validate = () => {
     if (!form.name.trim()) return 'El nombre es requerido.'
     if (!form.date) return 'La fecha es requerida.'
+    if (new Date(form.date) <= new Date()) return 'La fecha del evento debe ser futura.'
     if (!form.venue.trim()) return 'El lugar es requerido.'
 
     const tickets = parseInt(form.total_tickets)

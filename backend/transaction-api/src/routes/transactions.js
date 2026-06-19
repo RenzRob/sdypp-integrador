@@ -1,8 +1,10 @@
 'use strict';
 require('dotenv').config();
+const crypto = require('crypto');
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 const redis = require('../lib/redis');
 const { publishTransaction } = require('../lib/rabbitmq');
 const { requireAuth } = require('../lib/auth');
@@ -268,6 +270,7 @@ router.post(
       await redis.hdel(`event:${event_id}:listings`, ticket_id);
       await redis.set(`ticket:${event_id}:${ticket_id}:owner`, req.user.wallet_address);
       await redis.set(`ticket:${event_id}:${ticket_id}:resales`, String(resale_count + 1));
+      await redis.del(`ticket:${event_id}:${ticket_id}:qr_secret`);
       await redis.srem(`user:${listing.seller_wallet}:tickets`, `${event_id}:${ticket_id}`);
       await redis.sadd(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
       await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
@@ -360,6 +363,7 @@ router.post(
 
       await redis.set(`ticket:${event_id}:${ticket_id}:owner`, to_wallet);
       await redis.set(`ticket:${event_id}:${ticket_id}:resales`, String(resale_count + 1));
+      await redis.del(`ticket:${event_id}:${ticket_id}:qr_secret`);
       await redis.srem(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
       await redis.sadd(`user:${to_wallet}:tickets`, `${event_id}:${ticket_id}`);
       await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
@@ -419,6 +423,45 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// GET /transactions/qr-token/:event_id/:ticket_id
+router.get(
+  '/qr-token/:event_id/:ticket_id',
+  requireAuth,
+  [
+    param('event_id').isUUID().withMessage('Valid event_id required'),
+    param('ticket_id').notEmpty().withMessage('ticket_id required'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+    const { event_id, ticket_id } = req.params;
+
+    try {
+      const owner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);
+      if (!owner) return res.status(404).json({ error: 'Ticket not found' });
+      if (owner !== req.user.wallet_address) return res.status(403).json({ error: 'You do not own this ticket' });
+
+      let secret = await redis.get(`ticket:${event_id}:${ticket_id}:qr_secret`);
+      if (!secret) {
+        secret = crypto.randomBytes(32).toString('hex');
+        await redis.set(`ticket:${event_id}:${ticket_id}:qr_secret`, secret);
+      }
+
+      const token = jwt.sign(
+        { event_id, ticket_id, wallet: req.user.wallet_address },
+        secret,
+        { expiresIn: 60 }
+      );
+
+      return res.json({ token, expires_at: Math.floor(Date.now() / 1000) + 60 });
+    } catch (err) {
+      console.error('[GET /qr-token] Error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
 
 // GET /transactions/status/:tx_id
 router.get(

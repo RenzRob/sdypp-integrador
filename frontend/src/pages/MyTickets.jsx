@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
+import QRCode from 'qrcode'
 import { useAuth } from '../context/AuthContext.jsx'
 
 function formatCurrency(amount) {
@@ -75,11 +76,147 @@ function ListModal({ ticket, onClose, onSubmit, loading }) {
   )
 }
 
+const QR_REFRESH_SECS = 30
+
+function QRPanel({ ticket, authFetch }) {
+  const [qrDataUrl, setQrDataUrl] = useState(null)
+  const [secondsLeft, setSecondsLeft] = useState(QR_REFRESH_SECS)
+  const [qrError, setQrError] = useState('')
+  const [fetching, setFetching] = useState(false)
+
+  const refresh = useCallback(async () => {
+    if (!ticket) return
+    setFetching(true)
+    setQrError('')
+    try {
+      const res = await authFetch(`/api/transactions/qr-token/${ticket.event_id}/${ticket.ticket_id}`)
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Error al obtener QR')
+      const scanUrl = `${window.location.origin}/scan?token=${encodeURIComponent(data.token)}`
+      const url = await QRCode.toDataURL(scanUrl, { width: 220, margin: 2 })
+      setQrDataUrl(url)
+      setSecondsLeft(QR_REFRESH_SECS)
+    } catch (err) {
+      setQrError(err.message || 'No se pudo generar el QR')
+    } finally {
+      setFetching(false)
+    }
+  }, [ticket, authFetch])
+
+  useEffect(() => {
+    setQrDataUrl(null)
+    refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    if (!ticket) return
+    const id = setInterval(() => {
+      setSecondsLeft(s => {
+        if (s <= 1) { refresh(); return QR_REFRESH_SECS }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [ticket, refresh])
+
+  if (!ticket) {
+    return (
+      <div style={panelStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+          <span style={{ fontSize: '2.5rem' }}>🎫</span>
+          <p style={{ margin: 0 }}>Seleccioná una entrada para ver su QR de acceso</p>
+        </div>
+      </div>
+    )
+  }
+
+  const urgent = secondsLeft <= 8
+
+  return (
+    <div style={panelStyle}>
+      <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+        <p style={{ margin: '0 0 0.15rem', fontWeight: 600, fontSize: '0.95rem' }}>{ticket.event_name}</p>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{ticket.ticket_id}</p>
+      </div>
+
+      {qrError && <div className="alert alert-error" style={{ marginBottom: '0.75rem' }}>{qrError}</div>}
+
+      <div style={{ display: 'flex', justifyContent: 'center', minHeight: '220px', alignItems: 'center' }}>
+        {fetching && !qrDataUrl && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
+            <span className="loading-spinner" />
+            <span style={{ fontSize: '0.82rem' }}>Generando QR…</span>
+          </div>
+        )}
+        {qrDataUrl && (
+          <img
+            src={qrDataUrl}
+            alt="QR de acceso"
+            style={{
+              display: 'block',
+              borderRadius: '10px',
+              border: '3px solid var(--border)',
+              opacity: fetching ? 0.35 : 1,
+              transition: 'opacity 0.25s',
+            }}
+          />
+        )}
+      </div>
+
+      {qrDataUrl && (
+        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
+          <div style={{ width: '180px', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
+            <div
+              style={{
+                height: '100%',
+                width: `${(secondsLeft / QR_REFRESH_SECS) * 100}%`,
+                background: urgent ? '#f59e0b' : 'var(--accent)',
+                transition: 'width 1s linear, background 0.3s',
+                borderRadius: '99px',
+              }}
+            />
+          </div>
+          <span style={{ fontSize: '0.78rem', color: urgent ? '#f59e0b' : 'var(--text-muted)' }}>
+            {fetching ? 'Renovando…' : `Renueva en ${secondsLeft}s`}
+          </span>
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+            El QR cambia cada {QR_REFRESH_SECS}s para evitar capturas de pantalla
+          </span>
+        </div>
+      )}
+
+      {!fetching && (
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={refresh}
+          style={{ marginTop: '0.75rem', width: '100%' }}
+        >
+          Renovar ahora
+        </button>
+      )}
+    </div>
+  )
+}
+
+const panelStyle = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 'var(--radius)',
+  padding: '1.25rem',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  height: '100%',
+  boxSizing: 'border-box',
+  overflowY: 'auto',
+}
+
 export default function MyTickets() {
   const { authFetch } = useAuth()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [selectedTicket, setSelectedTicket] = useState(null)
   const [listTarget, setListTarget] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -97,7 +234,15 @@ export default function MyTickets() {
         throw new Error(data.error || data.detail || `Error ${res.status}`)
       }
       const data = await res.json()
-      setTickets(Array.isArray(data) ? data : (data.tickets || []))
+      const list = Array.isArray(data) ? data : (data.tickets || [])
+      setTickets(list)
+      setSelectedTicket(prev => {
+        if (prev) {
+          const updated = list.find(t => t.ticket_id === prev.ticket_id && t.event_id === prev.event_id)
+          return updated ?? (list[0] ?? null)
+        }
+        return list[0] ?? null
+      })
     } catch (err) {
       setError(err.message || 'No se pudieron cargar tus entradas')
     } finally {
@@ -151,11 +296,11 @@ export default function MyTickets() {
     if (ticket.event_status === 'suspended') return false
     if (ticket.event_rules?.nominada) return false
     if (ticket.event_rules?.max_reventas != null && ticket.resale_count >= ticket.event_rules.max_reventas) return false
-    if (ticket.event_rules?.ventana_venta) {
-      // ventana_venta check would need event date — skip for now, backend validates
-    }
     return true
   }
+
+  const isSelected = (ticket) =>
+    selectedTicket?.ticket_id === ticket.ticket_id && selectedTicket?.event_id === ticket.event_id
 
   return (
     <main className="page">
@@ -181,64 +326,80 @@ export default function MyTickets() {
       )}
 
       {!loading && !error && tickets.length > 0 && (
-        <div className="my-tickets-list">
-          {tickets.map((ticket, idx) => (
-            <div key={ticket.ticket_id || idx} className="my-ticket-card">
-              <div className="my-ticket-header">
-                <span className="my-ticket-event">
-                  {ticket.event_name || 'Evento desconocido'}
-                </span>
-                {ticket.listed
-                  ? <span className="badge badge-listed">En venta · {formatCurrency(ticket.listing_price)}</span>
-                  : <span className="badge badge-available">Activa</span>
-                }
-              </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1.5rem', height: 'min(80vh, 540px)' }}>
+          <div className="my-tickets-list" style={{ overflowY: 'auto', height: '100%', padding: '0.25rem 0.5rem 0.5rem 0.5rem' }}>
+            {tickets.map((ticket, idx) => (
+              <div
+                key={ticket.ticket_id || idx}
+                className="my-ticket-card"
+                onClick={() => setSelectedTicket(ticket)}
+                style={{
+                  cursor: 'pointer',
+                  outline: isSelected(ticket) ? '2px solid var(--accent)' : 'none',
+                  outlineOffset: '2px',
+                  transition: 'outline 0.15s',
+                }}
+              >
+                <div className="my-ticket-header">
+                  <span className="my-ticket-event">
+                    {ticket.event_name || 'Evento desconocido'}
+                  </span>
+                  {ticket.listed
+                    ? <span className="badge badge-listed">En venta · {formatCurrency(ticket.listing_price)}</span>
+                    : <span className="badge badge-available">Activa</span>
+                  }
+                </div>
 
-              <div className="my-ticket-details">
-                <div className="my-ticket-detail">
-                  <strong>Ticket ID:</strong> <span>#{ticket.ticket_id}</span>
+                <div className="my-ticket-details">
+                  <div className="my-ticket-detail">
+                    <strong>Ticket ID:</strong> <span>#{ticket.ticket_id}</span>
+                  </div>
+                  <div className="my-ticket-detail">
+                    <strong>Wallet:</strong>{' '}
+                    <span>
+                      {(ticket.owner_wallet || ticket.wallet_address)
+                        ? (ticket.owner_wallet || ticket.wallet_address).slice(0, 24) + '…'
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="my-ticket-detail">
+                    <strong>Reventas:</strong>{' '}
+                    <span>
+                      {ticket.resale_count ?? 0}
+                      {ticket.event_rules?.max_reventas != null ? ` / ${ticket.event_rules.max_reventas}` : ''}
+                    </span>
+                  </div>
                 </div>
-                <div className="my-ticket-detail">
-                  <strong>Wallet:</strong>{' '}
-                  <span>
-                    {(ticket.owner_wallet || ticket.wallet_address)
-                      ? (ticket.owner_wallet || ticket.wallet_address).slice(0, 24) + '…'
-                      : '—'}
-                  </span>
-                </div>
-                <div className="my-ticket-detail">
-                  <strong>Reventas:</strong>{' '}
-                  <span>
-                    {ticket.resale_count ?? 0}
-                    {ticket.event_rules?.max_reventas != null ? ` / ${ticket.event_rules.max_reventas}` : ''}
-                  </span>
-                </div>
-              </div>
 
-              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {ticket.listed ? (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    disabled={actionLoading}
-                    onClick={() => handleUnlist(ticket)}
-                  >
-                    Cancelar venta
-                  </button>
-                ) : canList(ticket) ? (
-                  <button
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => { setMessage(''); setActionError(''); setListTarget(ticket) }}
-                  >
-                    Poner en venta
-                  </button>
-                ) : (
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {ticket.event_rules?.nominada ? 'Entrada nominada' : 'Sin reventas disponibles'}
-                  </span>
-                )}
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {ticket.listed ? (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      disabled={actionLoading}
+                      onClick={e => { e.stopPropagation(); handleUnlist(ticket) }}
+                    >
+                      Cancelar venta
+                    </button>
+                  ) : canList(ticket) ? (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={e => { e.stopPropagation(); setMessage(''); setActionError(''); setListTarget(ticket) }}
+                    >
+                      Poner en venta
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {ticket.event_rules?.nominada ? 'Entrada nominada' : 'Sin reventas disponibles'}
+                    </span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div style={{ height: '100%' }}>
+            <QRPanel ticket={selectedTicket} authFetch={authFetch} />
+          </div>
         </div>
       )}
 
