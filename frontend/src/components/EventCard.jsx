@@ -28,7 +28,6 @@ export default function EventCard({ event }) {
 
   const available = event.available_tickets ?? event.tickets_disponibles ?? 0
   const total = event.total_tickets ?? 0
-
   const suspended = event.status === 'suspended'
 
   const ticketsClass =
@@ -54,29 +53,43 @@ export default function EventCard({ event }) {
       onKeyDown={(e) => e.key === 'Enter' && navigate(`/events/${event.id}`)}
       aria-label={`Ver evento ${event.name}`}
     >
-      <div className="event-card-header">
-        <h3 className="event-card-title">{event.name}</h3>
-        {suspended
-          ? <span className="badge badge-suspended">Suspendido</span>
-          : available === 0 && <span className="badge badge-sold">Agotado</span>
-        }
-      </div>
-
-      <div className="event-card-meta">
-        <span>📅 {formatDate(event.date)}</span>
-        <span>📍 {event.venue}</span>
-        {event.description && (
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
-            {event.description.length > 80
-              ? event.description.slice(0, 80) + '…'
-              : event.description}
-          </span>
+      {/* Imagen izquierda */}
+      <div className="event-card-image">
+        {event.image_url ? (
+          <img src={event.image_url} alt={event.name} />
+        ) : (
+          <div className="event-card-image-placeholder">
+            🎟
+          </div>
         )}
       </div>
 
-      <div className="event-card-footer">
-        <span className="event-price">{formatCurrency(event.price)}</span>
-        <span className={`event-tickets-left ${ticketsClass}`}>{ticketsLabel}</span>
+      {/* Contenido derecho */}
+      <div className="event-card-body">
+        <div className="event-card-header">
+          <h3 className="event-card-title">{event.name}</h3>
+          {suspended
+            ? <span className="badge badge-suspended">Suspendido</span>
+            : available === 0 && <span className="badge badge-sold">Agotado</span>
+          }
+        </div>
+
+        <div className="event-card-meta">
+          <span>📅 {formatDate(event.date)}</span>
+          <span>📍 {event.venue}</span>
+          {event.description && (
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+              {event.description.length > 60
+                ? event.description.slice(0, 60) + '…'
+                : event.description}
+            </span>
+          )}
+        </div>
+
+        <div className="event-card-footer">
+          <span className="event-price">{formatCurrency(event.price)}</span>
+          <span className={`event-tickets-left ${ticketsClass}`}>{ticketsLabel}</span>
+        </div>
       </div>
     </div>
   )

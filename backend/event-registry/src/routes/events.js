@@ -4,10 +4,73 @@ const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
+const multer = require('multer');
 const redis = require('../lib/redis');
 const { requireAdmin } = require('../lib/auth');
+const { client: minioClient, BUCKET } = require('../lib/minio');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+});
+
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const MAGIC = [
+  { mime: 'image/jpeg', bytes: [0xff, 0xd8, 0xff] },
+  { mime: 'image/png',  bytes: [0x89, 0x50, 0x4e, 0x47] },
+  { mime: 'image/gif',  bytes: [0x47, 0x49, 0x46, 0x38] },
+  { mime: 'image/webp', bytes: [0x52, 0x49, 0x46, 0x46], offset: 0, extra: { offset: 8, bytes: [0x57, 0x45, 0x42, 0x50] } },
+];
+
+function detectMimeFromBuffer(buf) {
+  for (const sig of MAGIC) {
+    const slice = [...buf.slice(sig.offset || 0, (sig.offset || 0) + sig.bytes.length)];
+    if (sig.bytes.every((b, i) => b === slice[i])) {
+      if (sig.extra) {
+        const extra = [...buf.slice(sig.extra.offset, sig.extra.offset + sig.extra.bytes.length)];
+        if (!sig.extra.bytes.every((b, i) => b === extra[i])) continue;
+      }
+      return sig.mime;
+    }
+  }
+  return null;
+}
+
+const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif' };
 
 const router = express.Router();
+
+// POST /events/upload-image (admin only)
+router.post('/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
+  }
+
+  const declaredMime = req.file.mimetype;
+  if (!ALLOWED_MIME.includes(declaredMime)) {
+    return res.status(400).json({ error: 'File must be an image (jpeg, png, webp, gif)' });
+  }
+
+  const detectedMime = detectMimeFromBuffer(req.file.buffer);
+  if (!detectedMime) {
+    return res.status(400).json({ error: 'File content does not match a valid image format' });
+  }
+
+  const ext = EXT[detectedMime];
+  const hash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+  const objectName = `${hash}.${ext}`;
+
+  try {
+    await minioClient.putObject(BUCKET, objectName, req.file.buffer, req.file.buffer.length, {
+      'Content-Type': detectedMime,
+    });
+    return res.json({ url: `/images/${objectName}` });
+  } catch (err) {
+    console.error('[upload-image] MinIO error:', err.message);
+    return res.status(500).json({ error: 'Failed to store image' });
+  }
+});
 
 // GET /events
 router.get('/', async (req, res) => {
@@ -61,7 +124,7 @@ router.post(
       return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { name, description, date, venue, total_tickets, price, rules } = req.body;
+    const { name, description, date, venue, total_tickets, price, rules, image_url } = req.body;
 
     try {
       const event_id = uuidv4();
@@ -97,6 +160,7 @@ router.post(
         total_tickets,
         price,
         rules,
+        image_url: image_url || null,
         genesis_block_hash,
         status: 'active',
         created_at: timestamp,

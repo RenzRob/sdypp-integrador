@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config();
 const { Pool } = require('pg');
+const bcrypt = require('bcryptjs');
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -18,6 +19,18 @@ async function initSchema() {
     )
   `);
   console.log('[DB] Schema ready');
+  await seedAdmin();
+}
+
+async function seedAdmin() {
+  const password_hash = await bcrypt.hash('admin', 12);
+  await pool.query(
+    `INSERT INTO users (id, email, password_hash, role, wallet_address)
+     VALUES (gen_random_uuid(), 'ticket_chain_admin@gmail.com', $1, 'admin', NULL)
+     ON CONFLICT (email) DO NOTHING`,
+    [password_hash]
+  );
+  console.log('[DB] Admin user ready');
 }
 
 module.exports = { pool, initSchema };

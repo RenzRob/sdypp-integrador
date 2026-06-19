@@ -15,7 +15,7 @@ function ListModal({ ticket, onClose, onSubmit, loading }) {
   const [error, setError] = useState('')
 
   const maxPrice = ticket.event_rules?.precio_max != null
-    ? Math.floor((ticket.event_price ?? 0) * (ticket.event_rules.precio_max / 100))
+    ? Math.floor((ticket.event_price ?? 0) * (1 + ticket.event_rules.precio_max / 100))
     : null
 
   const handleSubmit = (e) => {

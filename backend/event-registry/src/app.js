@@ -26,4 +26,11 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, () => console.log(`event-registry running on ${PORT}`));
+const { initBucket } = require('./lib/minio');
+
+initBucket()
+  .then(() => app.listen(PORT, () => console.log(`event-registry running on ${PORT}`)))
+  .catch((err) => {
+    console.error('[Startup] MinIO init failed:', err.message);
+    process.exit(1);
+  });

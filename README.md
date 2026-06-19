@@ -131,7 +131,7 @@ El creador del evento define sus reglas al momento de crearlo. Quedan grabadas e
 
 ## **6.0 Diagrama de arquitectura propuesta**
 
-![](propuesta.png)
+![](docs/arquitectura.png)
 
 ## **6.1 Servicios definidos por el TP (Pilar 2\)**
 

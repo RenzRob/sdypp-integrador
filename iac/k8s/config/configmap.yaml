@@ -4,7 +4,14 @@ metadata:
   name: ticketchain-config
   namespace: ticketchain
 data:
+  # Conexiones internas (no sensibles)
   REDIS_URL: "redis://redis:6379"
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  # MinIO (no sensible)
+  MINIO_ENDPOINT: "minio"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "ticketchain"
+  # App
+  CORS_ORIGIN: "http://ticketchain.local"
   MINING_DIFFICULTY: "3"
   NODE_ENV: "production"

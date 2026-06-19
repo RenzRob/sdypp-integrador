@@ -51,11 +51,11 @@ export function AuthProvider({ children }) {
     return data
   }
 
-  const register = async (email, password, role) => {
+  const register = async (email, password) => {
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, role })
+      body: JSON.stringify({ email, password })
     })
 
     const data = await res.json()
@@ -74,8 +74,9 @@ export function AuthProvider({ children }) {
   // authFetch: fetch que adjunta Authorization header y maneja 401 automáticamente
   const authFetch = useCallback(async (url, options = {}) => {
     const currentToken = localStorage.getItem(TOKEN_KEY)
+    const isFormData = options.body instanceof FormData
     const headers = {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers || {}),
       ...(currentToken ? { Authorization: `Bearer ${currentToken}` } : {})
     }

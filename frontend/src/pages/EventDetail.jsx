@@ -39,6 +39,7 @@ export default function EventDetail() {
   const [buyError, setBuyError] = useState('')
   const [listings, setListings] = useState([])
   const [buyingListed, setBuyingListed] = useState(null)
+  const [activeTab, setActiveTab] = useState('oficial')
 
   useEffect(() => {
     document.title = event ? `${event.name} — TicketChain` : 'Evento — TicketChain'
@@ -68,7 +69,7 @@ export default function EventDetail() {
       if (!res.ok) return
       const data = await res.json()
       const blockList = Array.isArray(data) ? data : (data.blocks || data.chain || [])
-      setBlocks(blockList.slice(-5))
+      setBlocks(blockList)
     } catch {
       // blockchain puede no estar disponible todavía
     }
@@ -177,169 +178,261 @@ export default function EventDetail() {
   const rules = event.rules || {}
   const isCreator = isAdmin && event.creator_id === user?.id
 
+  const priceDiff = (listingPrice) => {
+    if (!event.price) return null
+    const diff = ((listingPrice - event.price) / event.price) * 100
+    return diff
+  }
+
+  const tabBtn = (tab, label) => ({
+    padding: '0.65rem 1.25rem',
+    background: 'none',
+    border: 'none',
+    borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
+    marginBottom: '-2px',
+    color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
+    fontWeight: activeTab === tab ? '600' : '400',
+    cursor: 'pointer',
+    fontSize: '0.95rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.4rem',
+  })
+
   return (
-    <main className="page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/events')}>
-          ← Volver a eventos
-        </button>
-        {isCreator && (
-          <button
-            className="btn btn-secondary btn-sm"
-            onClick={() => navigate(`/admin/events/${event.id}/edit`)}
-          >
-            Editar evento
+    <div style={{
+      width: '100%',
+      height: 'calc(100vh - 60px)',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      boxSizing: 'border-box',
+    }}>
+
+      {/* ── HEADER (full width, sin scroll) ── */}
+      <div style={{ flexShrink: 0, padding: '1.25rem 1.5rem 0' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/events')}>
+            ← Volver a eventos
           </button>
-        )}
-      </div>
-
-      {suspended && (
-        <div className="alert alert-warning" style={{ marginBottom: '1.5rem' }}>
-          Este evento está suspendido. No se pueden comprar ni transferir entradas.
+          {isCreator && (
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/admin/events/${event.id}/edit`)}>
+              Editar evento
+            </button>
+          )}
         </div>
-      )}
 
-      <div className="event-detail-header">
-        <h1>{event.name}</h1>
-        <div className="event-detail-meta">
+        {suspended && (
+          <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
+            Este evento está suspendido. No se pueden comprar ni transferir entradas.
+          </div>
+        )}
+
+        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.4rem' }}>{event.name}</h1>
+        <div className="event-detail-meta" style={{ marginBottom: '0.75rem' }}>
           <span>📅 {formatDate(event.date)}</span>
           <span>📍 {event.venue}</span>
           <span>💰 {formatCurrency(event.price)}</span>
           <span>🎟 {available.toLocaleString('es-AR')} / {total.toLocaleString('es-AR')} disponibles</span>
         </div>
         {event.description && (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginTop: '0.5rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
             {event.description}
           </p>
         )}
-      </div>
 
-      {buyMessage && (
-        <div className="alert alert-success" style={{ margin: '1rem 0' }}>{buyMessage}</div>
-      )}
-      {buyError && (
-        <div className="alert alert-error" style={{ margin: '1rem 0' }}>{buyError}</div>
-      )}
-
-      <div className="event-detail-body">
-        <div>
-          <div className="event-rules">
-            <h3>Reglas del evento</h3>
-            <div className="rules-grid">
-              <div className="rule-item">
-                <span className="rule-label">Precio máximo reventa</span>
-                <span className="rule-value">
-                  {rules.precio_max ? `${rules.precio_max}% del precio original` : '—'}
-                </span>
-              </div>
-              <div className="rule-item">
-                <span className="rule-label">Máx. reventas</span>
-                <span className="rule-value">
-                  {rules.max_reventas != null ? rules.max_reventas : '—'}
-                </span>
-              </div>
-              <div className="rule-item">
-                <span className="rule-label">Entrada nominada</span>
-                <span className="rule-value">
-                  {rules.nominada === true ? 'Sí' : rules.nominada === false ? 'No' : '—'}
-                </span>
-              </div>
-              <div className="rule-item">
-                <span className="rule-label">Ventana de venta</span>
-                <span className="rule-value">
-                  {rules.ventana_venta ? `${rules.ventana_venta}h antes del evento` : '—'}
-                </span>
-              </div>
+        <div className="event-rules" style={{ marginBottom: '0.75rem' }}>
+          <h3>Reglas del evento</h3>
+          <div className="rules-grid">
+            <div className="rule-item">
+              <span className="rule-label">Precio máx. reventa</span>
+              <span className="rule-value">{rules.precio_max ? `+${rules.precio_max}% del original` : '—'}</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-label">Máx. reventas</span>
+              <span className="rule-value">{rules.max_reventas != null ? rules.max_reventas : '—'}</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-label">Entrada nominada</span>
+              <span className="rule-value">{rules.nominada === true ? 'Sí' : rules.nominada === false ? 'No' : '—'}</span>
+            </div>
+            <div className="rule-item">
+              <span className="rule-label">Ventana de venta</span>
+              <span className="rule-value">{rules.ventana_venta ? `${rules.ventana_venta}h antes` : '—'}</span>
             </div>
           </div>
-
-          <div className="tickets-section">
-            <h2>Entradas</h2>
-            {suspended ? (
-              <div className="empty-state">
-                <p>El evento está suspendido. No se puede comprar entradas.</p>
-              </div>
-            ) : available === 0 ? (
-              <div className="empty-state">
-                <p>No quedan entradas disponibles.</p>
-              </div>
-            ) : !user ? (
-              <div className="notice" style={{ marginTop: '0.5rem' }}>
-                <a href="/login">Iniciá sesión</a> para comprar entradas.
-              </div>
-            ) : isAdmin ? (
-              <div className="notice" style={{ marginTop: '0.5rem' }}>
-                Las cuentas de administrador no pueden comprar entradas.
-              </div>
-            ) : (
-              <div style={{ marginTop: '1rem' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                  Quedan <strong>{available.toLocaleString('es-AR')}</strong> entradas al precio de <strong>{formatCurrency(event.price)}</strong>.
-                </p>
-                <button
-                  className="btn btn-primary"
-                  onClick={handleBuy}
-                  disabled={buying}
-                >
-                  {buying ? (
-                    <>
-                      <span className="loading-spinner loading-spinner-sm" />
-                      Procesando…
-                    </>
-                  ) : 'Comprar entrada'}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {!suspended && listings.length > 0 && (
-            <div className="tickets-section" style={{ marginTop: '1.5rem' }}>
-              <h2>Entradas en reventa</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.75rem' }}>
-                {listings.map(listing => {
-                  const isOwn = user?.wallet_address === listing.seller_wallet
-                  return (
-                    <div
-                      key={listing.ticket_id}
-                      className="card"
-                      style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}
-                    >
-                      <div>
-                        <strong>#{listing.ticket_id}</strong>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                          Vendedor: {listing.seller_wallet}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <strong style={{ fontSize: '1rem' }}>{formatCurrency(listing.price)}</strong>
-                        {!user ? (
-                          <a href="/login" className="btn btn-secondary btn-sm">Ingresar para comprar</a>
-                        ) : isOwn ? (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Tu publicación</span>
-                        ) : isAdmin ? (
-                          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Admin</span>
-                        ) : (
-                          <button
-                            className="btn btn-primary btn-sm"
-                            disabled={buyingListed === listing.ticket_id}
-                            onClick={() => handleBuyListed(listing)}
-                          >
-                            {buyingListed === listing.ticket_id ? 'Procesando…' : 'Comprar'}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
-        <div>
+        {buyMessage && <div className="alert alert-success" style={{ marginBottom: '0.5rem' }}>{buyMessage}</div>}
+        {buyError   && <div className="alert alert-error"   style={{ marginBottom: '0.5rem' }}>{buyError}</div>}
+      </div>
+
+      {/* ── SPLIT (2 columnas con scroll independiente) ── */}
+      <div style={{
+        flex: 1,
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '1rem',
+        overflow: 'hidden',
+        padding: '0.75rem 1.5rem 1.25rem',
+      }}>
+
+        {/* Panel izquierdo: compra oficial + mercado secundario */}
+        <div style={{
+          overflowY: 'auto',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {/* Tabs */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '2px solid var(--border)',
+            padding: '0 1rem',
+            flexShrink: 0,
+          }}>
+            <button onClick={() => setActiveTab('oficial')} style={tabBtn('oficial')}>
+              🎟 Compra oficial
+            </button>
+            <button onClick={() => setActiveTab('reventa')} style={tabBtn('reventa')}>
+              🔄 Mercado secundario
+              {listings.length > 0 && (
+                <span style={{
+                  background: 'var(--accent)', color: '#fff',
+                  borderRadius: '999px', fontSize: '0.7rem',
+                  fontWeight: '700', padding: '0.1rem 0.45rem', lineHeight: '1.4',
+                }}>
+                  {listings.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div style={{ padding: '1.25rem', flex: 1 }}>
+            {/* Tab: Compra oficial */}
+            {activeTab === 'oficial' && (
+              suspended ? (
+                <div className="empty-state"><p>El evento está suspendido.</p></div>
+              ) : available === 0 ? (
+                <div className="empty-state"><p>No quedan entradas disponibles en venta oficial.</p></div>
+              ) : !user ? (
+                <div className="notice"><a href="/login">Iniciá sesión</a> para comprar entradas.</div>
+              ) : isAdmin ? (
+                <div className="notice">Las cuentas de administrador no pueden comprar entradas.</div>
+              ) : (
+                <div style={{
+                  background: 'var(--card-bg)', border: '1px solid var(--border)',
+                  borderRadius: '12px', padding: '1.5rem',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
+                      Precio oficial
+                    </div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: '700' }}>{formatCurrency(event.price)}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                      {available.toLocaleString('es-AR')} entradas disponibles
+                    </div>
+                  </div>
+                  <button className="btn btn-primary" onClick={handleBuy} disabled={buying} style={{ minWidth: '160px' }}>
+                    {buying ? <><span className="loading-spinner loading-spinner-sm" />Procesando…</> : 'Compra oficial'}
+                  </button>
+                </div>
+              )
+            )}
+
+            {/* Tab: Mercado secundario */}
+            {activeTab === 'reventa' && (
+              suspended ? (
+                <div className="empty-state"><p>El evento está suspendido.</p></div>
+              ) : rules.nominada ? (
+                <div className="empty-state"><p>Este evento no permite reventa de entradas.</p></div>
+              ) : listings.length === 0 ? (
+                <div className="empty-state">
+                  <p style={{ marginBottom: '0.5rem' }}>No hay entradas en reventa por ahora.</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                    Si tenés una entrada, podés publicarla desde <a href="/my-tickets">Mis entradas</a>.
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {listings.map(listing => {
+                    const isOwn = user?.wallet_address === listing.seller_wallet
+                    const diff = priceDiff(listing.price)
+                    const diffLabel = diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(0)}%` : null
+                    const diffColor = diff == null ? 'var(--text-muted)' : diff <= 0 ? '#22c55e' : diff <= 15 ? '#f59e0b' : '#ef4444'
+
+                    return (
+                      <div key={listing.ticket_id} style={{
+                        background: 'var(--card-bg)', border: '1px solid var(--border)',
+                        borderRadius: '12px', padding: '1rem 1.25rem',
+                        display: 'flex', alignItems: 'center',
+                        justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div style={{
+                            width: '40px', height: '40px', borderRadius: '50%',
+                            background: 'var(--border)', display: 'flex',
+                            alignItems: 'center', justifyContent: 'center',
+                            fontSize: '1.1rem', flexShrink: 0,
+                          }}>🎫</div>
+                          <div>
+                            <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>
+                              Entrada #{listing.ticket_id.slice(-6)}
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                              {listing.seller_wallet}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>{formatCurrency(listing.price)}</div>
+                            {diffLabel && (
+                              <div style={{ fontSize: '0.75rem', color: diffColor, fontWeight: '600' }}>
+                                {diffLabel} vs oficial
+                              </div>
+                            )}
+                          </div>
+                          {!user ? (
+                            <a href="/login" className="btn btn-secondary btn-sm">Ingresar</a>
+                          ) : isOwn ? (
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--border)', borderRadius: '6px', padding: '0.3rem 0.6rem' }}>
+                              Tu publicación
+                            </span>
+                          ) : isAdmin ? null : (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              disabled={buyingListed === listing.ticket_id}
+                              onClick={() => handleBuyListed(listing)}
+                            >
+                              {buyingListed === listing.ticket_id ? 'Procesando…' : 'Comprar'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            )}
+          </div>
+        </div>
+
+        {/* Panel derecho: blockchain completa */}
+        <div style={{
+          overflowY: 'auto',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius)',
+          padding: '1.25rem',
+        }}>
           <BlockchainViewer blocks={blocks} />
         </div>
       </div>
-    </main>
+    </div>
   )
 }

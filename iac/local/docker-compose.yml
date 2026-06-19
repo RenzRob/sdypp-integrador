@@ -46,7 +46,7 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: ../../frontend
     env_file: .env
     ports:
       - "5173:5173"
@@ -60,7 +60,7 @@ services:
 
   auth-service:
     build:
-      context: ./backend/auth-service
+      context: ../../backend/auth-service
     env_file: .env
     environment:
       - DATABASE_URL=postgresql://ticketchain:ticketchain@postgres:5432/ticketchain
@@ -76,7 +76,7 @@ services:
 
   event-registry:
     build:
-      context: ./backend/event-registry
+      context: ../../backend/event-registry
     env_file: .env
     ports:
       - "3002:3002"
@@ -87,10 +87,12 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      minio:
+        condition: service_healthy
 
   transaction-api:
     build:
-      context: ./backend/transaction-api
+      context: ../../backend/transaction-api
     env_file: .env
     ports:
       - "3003:3003"
@@ -104,7 +106,7 @@ services:
 
   access-control:
     build:
-      context: ./backend/access-control
+      context: ../../backend/access-control
     env_file: .env
     ports:
       - "3004:3004"
@@ -118,7 +120,7 @@ services:
 
   status-api:
     build:
-      context: ./backend/status-api
+      context: ../../backend/status-api
     env_file: .env
     environment:
       - AUTH_HOST=auth-service
@@ -138,7 +140,7 @@ services:
 
   nct:
     build:
-      context: ./backend/nct
+      context: ../../backend/nct
     env_file: .env
     ports:
       - "8000:8000"
@@ -152,7 +154,7 @@ services:
 
   transaction-pool:
     build:
-      context: ./backend/transaction-pool
+      context: ../../backend/transaction-pool
     env_file: .env
     networks:
       - ticketchain-net
@@ -164,7 +166,7 @@ services:
 
   worker-cpu:
     build:
-      context: ./backend/worker-cpu
+      context: ../../backend/worker-cpu
     env_file: .env
     networks:
       - ticketchain-net
@@ -176,7 +178,7 @@ services:
 
   nginx:
     build:
-      context: ./iac/nginx
+      context: ../nginx
     ports:
       - "80:80"
     networks:
@@ -189,10 +191,30 @@ services:
       - access-control
       - status-api
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    env_file: .env
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    volumes:
+      - minio_data:/data
+    networks:
+      - ticketchain-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "9001:9001"  # MinIO console
+
 volumes:
   redis_data:
   rabbitmq_data:
   postgres_data:
+  minio_data:
 
 networks:
   ticketchain-net:

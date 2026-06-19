@@ -19,9 +19,36 @@ export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [imageError, setImageError] = useState('')
 
   const { authFetch } = useAuth()
   const navigate = useNavigate()
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setImageError('')
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('El archivo debe ser una imagen (jpg, png, webp, gif).')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('La imagen no puede superar 5 MB.')
+      return
+    }
+
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const removeImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setImageError('')
+  }
 
   useEffect(() => {
     document.title = 'Crear Evento — TicketChain'
@@ -65,6 +92,8 @@ export default function CreateEvent() {
       if (isNaN(vv) || vv < 0) return 'La ventana de venta debe ser un número positivo.'
     }
 
+    if (!imageFile) return 'El banner del evento es requerido.'
+
     return null
   }
 
@@ -80,6 +109,25 @@ export default function CreateEvent() {
 
     setLoading(true)
 
+    let image_url = null
+    if (imageFile) {
+      try {
+        const formData = new FormData()
+        formData.append('image', imageFile)
+        const uploadRes = await authFetch('/api/events/upload-image', {
+          method: 'POST',
+          body: formData,
+        })
+        const uploadData = await uploadRes.json().catch(() => ({}))
+        if (!uploadRes.ok) throw new Error(uploadData.error || 'Error al subir imagen')
+        image_url = uploadData.url
+      } catch (err) {
+        setError(err.message || 'No se pudo subir la imagen')
+        setLoading(false)
+        return
+      }
+    }
+
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
@@ -92,7 +140,8 @@ export default function CreateEvent() {
         max_reventas: form.max_reventas !== '' ? parseInt(form.max_reventas) : 0,
         nominada: form.nominada,
         ventana_venta: form.ventana_venta !== '' ? parseFloat(form.ventana_venta) : null
-      }
+      },
+      image_url,
     }
 
     try {
@@ -229,6 +278,64 @@ export default function CreateEvent() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Banner */}
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius)',
+            padding: '1.5rem',
+            marginBottom: '1.25rem'
+          }}>
+            <h3 className="section-title">Banner del evento *</h3>
+
+            {imageError && <div className="alert alert-error" style={{ marginBottom: '0.75rem' }}>{imageError}</div>}
+
+            {imagePreview ? (
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  style={{ width: '160px', height: '120px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border)', flexShrink: 0 }}
+                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{imageFile.name}</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{(imageFile.size / 1024).toFixed(0)} KB</span>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={removeImage}>
+                    Quitar imagen
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                border: '2px dashed var(--border)',
+                borderRadius: '8px',
+                padding: '2rem',
+                cursor: 'pointer',
+                color: 'var(--text-muted)',
+                fontSize: '0.9rem',
+                transition: 'border-color 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <span style={{ fontSize: '2rem' }}>🖼</span>
+                <span>Hacé click para subir una imagen</span>
+                <span style={{ fontSize: '0.78rem' }}>JPG, PNG, WebP o GIF — máx. 5 MB</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={handleImageChange}
+                />
+              </label>
+            )}
           </div>
 
           {/* Reglas */}

@@ -6,7 +6,6 @@ export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [role, setRole] = useState('user')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [registered, setRegistered] = useState(null) // { wallet_address }
@@ -42,7 +41,7 @@ export default function Register() {
 
     setLoading(true)
     try {
-      const data = await register(email.trim(), password, role)
+      const data = await register(email.trim(), password)
       setRegistered(data)
     } catch (err) {
       setError(err.message || 'Error al registrarse')
@@ -52,32 +51,23 @@ export default function Register() {
   }
 
   if (registered) {
-    const isAdmin = registered.user?.role === 'admin'
     return (
       <main>
         <div className="form-container">
           <h1>¡Registro exitoso!</h1>
           <p className="form-subtitle">Tu cuenta fue creada correctamente</p>
 
-          {isAdmin ? (
-            <div className="alert alert-success">
-              Cuenta de administrador creada.
+          <div className="alert alert-success">
+            Cuenta creada. Tu wallet fue generada automáticamente.
+          </div>
+          {registered.user?.wallet_address && (
+            <div className="wallet-box">
+              <p>Tu wallet address:</p>
+              <div className="wallet-address">{registered.user.wallet_address}</div>
+              <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Guardá esta dirección. Es tu identidad en la blockchain de TicketChain.
+              </p>
             </div>
-          ) : (
-            <>
-              <div className="alert alert-success">
-                Cuenta creada. Tu wallet fue generada automáticamente.
-              </div>
-              {registered.user?.wallet_address && (
-                <div className="wallet-box">
-                  <p>Tu wallet address:</p>
-                  <div className="wallet-address">{registered.user.wallet_address}</div>
-                  <p style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Guardá esta dirección. Es tu identidad en la blockchain de TicketChain.
-                  </p>
-                </div>
-              )}
-            </>
           )}
 
           <div style={{ marginTop: '1.5rem' }}>
@@ -137,32 +127,6 @@ export default function Register() {
               autoComplete="new-password"
               required
             />
-          </div>
-
-          <div className="form-group">
-            <label>Tipo de cuenta</label>
-            <div className="radio-group">
-              <label>
-                <input
-                  type="radio"
-                  name="role"
-                  value="user"
-                  checked={role === 'user'}
-                  onChange={() => setRole('user')}
-                />
-                Usuario
-              </label>
-              <label>
-                <input
-                  type="radio"
-                  name="role"
-                  value="admin"
-                  checked={role === 'admin'}
-                  onChange={() => setRole('admin')}
-                />
-                Administrador
-              </label>
-            </div>
           </div>
 
           <button

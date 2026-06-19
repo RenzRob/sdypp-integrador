@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 cd "$SCRIPT_DIR"
 
 # ── colores ───────────────────────────────────────────────────────────────────
@@ -34,24 +35,11 @@ if ! docker info &>/dev/null 2>&1; then
 fi
 ok "Docker activo — usando: $COMPOSE"
 
-# ── .env ──────────────────────────────────────────────────────────────────────
+# ── .env.example ──────────────────────────────────────────────────────────────
 if [ ! -f "$SCRIPT_DIR/.env" ]; then
-  if [ -f "$SCRIPT_DIR/.env.example" ]; then
-    cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
-    warn ".env creado desde .env.example"
-  else
-    info "Generando .env con valores por defecto para desarrollo local..."
-    cat > "$SCRIPT_DIR/.env" <<'ENVEOF'
-REDIS_URL=redis://redis:6379
-RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-JWT_SECRET=ticketchain_local_dev_secret_cambiar_en_produccion
-CORS_ORIGIN=http://localhost
-ENVEOF
-    warn ".env generado con valores por defecto. Editalo antes de usar en producción."
-  fi
-else
-  ok ".env encontrado"
+  die ".env no encontrado en iac/local/."
 fi
+ok ".env encontrado"
 
 # ── flags opcionales ──────────────────────────────────────────────────────────
 BUILD_FLAG="--build"

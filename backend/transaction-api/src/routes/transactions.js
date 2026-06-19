@@ -132,7 +132,7 @@ router.post(
       }
 
       if (event.rules?.precio_max != null) {
-        const maxPrice = event.price * (event.rules.precio_max / 100);
+        const maxPrice = event.price * (1 + event.rules.precio_max / 100);
         if (price > maxPrice) {
           return res.status(400).json({ error: `Price exceeds maximum allowed (${maxPrice.toFixed(0)})` });
         }
@@ -322,10 +322,13 @@ router.post(
         return res.status(403).json({ error: 'You do not own this ticket' });
       }
 
-      if (price > event.rules.precio_max) {
-        return res
-          .status(400)
-          .json({ error: `Resale price exceeds maximum allowed (${event.rules.precio_max})` });
+      if (event.rules?.precio_max != null) {
+        const maxPrice = event.price * (1 + event.rules.precio_max / 100);
+        if (price > maxPrice) {
+          return res
+            .status(400)
+            .json({ error: `Resale price exceeds maximum allowed (${maxPrice.toFixed(0)})` });
+        }
       }
 
       const resaleCountRaw = await redis.get(`ticket:${event_id}:${ticket_id}:resales`);

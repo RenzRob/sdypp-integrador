@@ -34,7 +34,6 @@ router.post(
   [
     body('email').isEmail().normalizeEmail().withMessage('Valid email required'),
     body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
-    body('role').optional().isIn(['user', 'admin']).withMessage('Role must be user or admin'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -42,7 +41,8 @@ router.post(
       return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { email, password, role = 'user' } = req.body;
+    const { email, password } = req.body;
+    const role = 'user';
 
     try {
       const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -52,7 +52,7 @@ router.post(
 
       const id = uuidv4();
       const password_hash = await bcrypt.hash(password, 12);
-      const wallet_address = role === 'user' ? generateWalletAddress(id) : null;
+      const wallet_address = generateWalletAddress(id);
 
       await pool.query(
         'INSERT INTO users (id, email, password_hash, role, wallet_address) VALUES ($1, $2, $3, $4, $5)',

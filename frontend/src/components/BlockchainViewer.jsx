@@ -96,7 +96,7 @@ export default function BlockchainViewer({ blocks = [] }) {
     <div className="blockchain-viewer">
       <h2>Blockchain del evento</h2>
       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-        Últimos {blocks.length} bloque{blocks.length !== 1 ? 's' : ''}. Hacé click en un bloque para ver sus transacciones.
+        {blocks.length} bloque{blocks.length !== 1 ? 's' : ''}. Hacé click para ver transacciones.
       </p>
       <div className="blockchain-chain">
         {blocks.map((block, i) => (
