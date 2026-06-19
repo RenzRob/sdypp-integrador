@@ -1,0 +1,42 @@
+frontend/src/pages/MyTickets.jsx
+  s_bf8468df622540::t_a2bba4e0f0cdc3 329
+  s_bf8468df622540::t_1a15af3c896bd3 209-211
+  s_bf8468df622540::t_babd2069ed23d2 2,79-94,97-208,212-213,219,237-245,302-303,331-345,347-350,352-371,374-395,397-399,401-402
+  s_bf8468df622540::t_d9b1bce32001c2 400
+  s_bf8468df622540::t_422b8d6bb67557 330
+  s_bf8468df622540::t_933905cab4cf3a 95-96
+backend/access-control/src/routes/access.js
+  s_bf8468df622540::t_230c099af6501e 5,10,32,39-40,49,51-52,56-70,73,76,79,83,86-97,100-119,121-126,129-130
+frontend/vite.config.js
+  s_bf8468df622540::t_50de1146631d99 9
+frontend/package.json
+  s_bf8468df622540::t_e842dc301e7431 10
+frontend/src/pages/admin/CreateEvent.jsx
+  s_bf8468df622540::t_392544b4e8a465 68
+frontend/src/pages/Scan.jsx
+  s_bf8468df622540::t_ada00190fefdf3 1-121
+frontend/src/App.jsx
+  s_bf8468df622540::t_34f34cc7b6c84a 11
+  s_bf8468df622540::t_0908a5d48c6284 26
+backend/transaction-api/src/routes/transactions.js
+  s_bf8468df622540::t_568c4eb00a5fd7 3,7
+  s_bf8468df622540::t_29f187de6fe00d 366
+  s_bf8468df622540::t_8dabb309e7f699 273
+  s_bf8468df622540::t_01936370e5bbd2 427-465
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4535d5e05a420271d1bae2a329e6b8b35c3c694e",
+  "prompts": {},
+  "sessions": {
+    "s_bf8468df622540": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "970c5e04-1cdd-4adf-9ba7-b077c2443316",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
