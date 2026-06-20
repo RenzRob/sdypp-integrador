@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: event-registry
-  namespace: ticketchain
+  namespace: g-404
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: event-registry
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: event-registry
-          image: ticketchain/event-registry:latest
+          image: ghcr.io/renzrob/event-registry:latest
           ports:
             - containerPort: 3002
           envFrom:
@@ -28,7 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: event-registry
-  namespace: ticketchain
+  namespace: g-404
 spec:
   type: ClusterIP
   selector:

@@ -1,40 +1,34 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: frontend
+  name: worker-gpu
   namespace: g-404
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: frontend
+      app: worker-gpu
   template:
     metadata:
       labels:
-        app: frontend
+        app: worker-gpu
     spec:
       imagePullSecrets:
         - name: ghcr-secret
       containers:
-        - name: frontend
-          image: ghcr.io/renzrob/frontend:latest
-          ports:
-            - containerPort: 5173
+        - name: worker-gpu
+          image: ghcr.io/renzrob/worker-gpu:latest
           envFrom:
             - configMapRef:
                 name: ticketchain-config
             - secretRef:
                 name: ticketchain-secrets
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend-service
-  namespace: g-404
-spec:
-  type: ClusterIP
-  selector:
-    app: frontend
-  ports:
-    - port: 5173
-      targetPort: 5173
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+              nvidia.com/gpu: "1"

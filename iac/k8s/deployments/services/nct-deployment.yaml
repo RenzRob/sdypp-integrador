@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nct
-  namespace: ticketchain
+  namespace: g-404
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: nct
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: nct
-          image: ticketchain/nct:latest
+          image: ghcr.io/renzrob/nct:latest
           ports:
             - containerPort: 8000
           envFrom:
@@ -28,7 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nct
-  namespace: ticketchain
+  namespace: g-404
 spec:
   type: ClusterIP
   selector:

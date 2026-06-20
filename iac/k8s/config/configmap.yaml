@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: ticketchain-config
-  namespace: ticketchain
+  namespace: g-404
 data:
   # Conexiones internas (no sensibles)
   REDIS_URL: "redis://redis:6379"

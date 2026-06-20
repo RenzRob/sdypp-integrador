@@ -2,7 +2,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: ticketchain-ingress
-  namespace: ticketchain
+  namespace: g-404
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:

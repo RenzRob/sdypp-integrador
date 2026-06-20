@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx
-  namespace: ticketchain
+  namespace: g-404
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: nginx
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: nginx
-          image: ticketchain/nginx:latest
+          image: ghcr.io/renzrob/nginx:latest
           ports:
             - containerPort: 80
 ---
@@ -23,7 +25,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: nginx-service
-  namespace: ticketchain
+  namespace: g-404
 spec:
   type: LoadBalancer
   selector:

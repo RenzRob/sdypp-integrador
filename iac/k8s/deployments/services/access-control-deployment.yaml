@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: access-control
-  namespace: ticketchain
+  namespace: g-404
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: access-control
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: access-control
-          image: ticketchain/access-control:latest
+          image: ghcr.io/renzrob/access-control:latest
           ports:
             - containerPort: 3004
           envFrom:
@@ -28,7 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: access-control
-  namespace: ticketchain
+  namespace: g-404
 spec:
   type: ClusterIP
   selector:

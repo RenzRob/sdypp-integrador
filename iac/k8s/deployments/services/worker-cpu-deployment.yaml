@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: worker-cpu
-  namespace: ticketchain
+  namespace: g-404
 spec:
   replicas: 1
   selector:
@@ -13,9 +13,11 @@ spec:
       labels:
         app: worker-cpu
     spec:
+      imagePullSecrets:
+        - name: ghcr-secret
       containers:
         - name: worker-cpu
-          image: ticketchain/worker-cpu:latest
+          image: ghcr.io/renzrob/worker-cpu:latest
           envFrom:
             - configMapRef:
                 name: ticketchain-config
@@ -33,7 +35,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: worker-cpu-hpa
-  namespace: ticketchain
+  namespace: g-404
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
