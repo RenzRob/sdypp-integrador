@@ -130,6 +130,18 @@ function QRPanel({ ticket, authFetch }) {
     )
   }
 
+  if (ticket.event_status === 'finished') {
+    return (
+      <div style={panelStyle}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
+          <span style={{ fontSize: '2.5rem' }}>🏁</span>
+          <p style={{ margin: 0, fontWeight: 600 }}>Evento finalizado</p>
+          <p style={{ margin: 0, fontSize: '0.85rem' }}>El QR de acceso ya no está disponible.</p>
+        </div>
+      </div>
+    )
+  }
+
   const urgent = secondsLeft <= 8
 
   return (
@@ -294,6 +306,7 @@ export default function MyTickets() {
 
   const canList = (ticket) => {
     if (ticket.event_status === 'suspended') return false
+    if (ticket.event_status === 'finished') return false
     if (ticket.event_rules?.nominada) return false
     if (ticket.event_rules?.max_reventas != null && ticket.resale_count >= ticket.event_rules.max_reventas) return false
     return true
@@ -344,7 +357,9 @@ export default function MyTickets() {
                   <span className="my-ticket-event">
                     {ticket.event_name || 'Evento desconocido'}
                   </span>
-                  {ticket.listed
+                  {ticket.event_status === 'finished'
+                    ? <span className="badge badge-finished">Finalizado</span>
+                    : ticket.listed
                     ? <span className="badge badge-listed">En venta · {formatCurrency(ticket.listing_price)}</span>
                     : <span className="badge badge-available">Activa</span>
                   }

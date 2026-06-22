@@ -29,16 +29,19 @@ export default function EventCard({ event }) {
   const available = event.available_tickets ?? event.tickets_disponibles ?? 0
   const total = event.total_tickets ?? 0
   const suspended = event.status === 'suspended'
+  const finished = event.status === 'finished'
 
   const ticketsClass =
-    suspended || available === 0
+    suspended || finished || available === 0
       ? 'sold-out'
       : available <= Math.max(1, Math.floor(total * 0.1))
       ? 'low'
       : ''
 
   const ticketsLabel =
-    suspended
+    finished
+      ? 'Finalizado'
+      : suspended
       ? 'Suspendido'
       : available === 0
       ? 'Agotado'
@@ -68,7 +71,9 @@ export default function EventCard({ event }) {
       <div className="event-card-body">
         <div className="event-card-header">
           <h3 className="event-card-title">{event.name}</h3>
-          {suspended
+          {finished
+            ? <span className="badge badge-finished">Finalizado</span>
+            : suspended
             ? <span className="badge badge-suspended">Suspendido</span>
             : available === 0 && <span className="badge badge-sold">Agotado</span>
           }

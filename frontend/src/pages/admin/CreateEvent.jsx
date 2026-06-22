@@ -132,7 +132,7 @@ export default function CreateEvent() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim(),
-      date: form.date,
+      date: new Date(form.date).toISOString(),
       venue: form.venue.trim(),
       total_tickets: parseInt(form.total_tickets),
       price: parseFloat(form.price),

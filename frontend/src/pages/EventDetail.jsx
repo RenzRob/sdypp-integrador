@@ -173,6 +173,7 @@ export default function EventDetail() {
   if (!event) return null
 
   const suspended = event.status === 'suspended'
+  const finished = event.status === 'finished'
   const available = event.available_tickets ?? 0
   const total = event.total_tickets ?? 0
   const rules = event.rules || {}
@@ -222,6 +223,11 @@ export default function EventDetail() {
           )}
         </div>
 
+        {finished && (
+          <div className="alert" style={{ marginBottom: '0.75rem', background: 'rgba(100,100,100,0.1)', border: '1px solid #bdbdbd', color: '#757575' }}>
+            Este evento ya finalizó.
+          </div>
+        )}
         {suspended && (
           <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
             Este evento está suspendido. No se pueden comprar ni transferir entradas.
@@ -313,7 +319,9 @@ export default function EventDetail() {
           <div style={{ padding: '1.25rem', flex: 1 }}>
             {/* Tab: Compra oficial */}
             {activeTab === 'oficial' && (
-              suspended ? (
+              finished ? (
+                <div className="empty-state"><p>El evento ya finalizó.</p></div>
+              ) : suspended ? (
                 <div className="empty-state"><p>El evento está suspendido.</p></div>
               ) : available === 0 ? (
                 <div className="empty-state"><p>No quedan entradas disponibles en venta oficial.</p></div>
@@ -346,7 +354,9 @@ export default function EventDetail() {
 
             {/* Tab: Mercado secundario */}
             {activeTab === 'reventa' && (
-              suspended ? (
+              finished ? (
+                <div className="empty-state"><p>El evento ya finalizó.</p></div>
+              ) : suspended ? (
                 <div className="empty-state"><p>El evento está suspendido.</p></div>
               ) : rules.nominada ? (
                 <div className="empty-state"><p>Este evento no permite reventa de entradas.</p></div>

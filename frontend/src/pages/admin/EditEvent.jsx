@@ -165,6 +165,16 @@ export default function EditEvent() {
                   />
                   Suspendido
                 </label>
+                {event.status === 'finished' && (
+                  <label>
+                    <input
+                      type="radio"
+                      disabled
+                      checked
+                    />
+                    Finalizado (solo lectura)
+                  </label>
+                )}
               </div>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.4rem', minHeight: '2.4rem' }}>
                 {status === 'suspended'

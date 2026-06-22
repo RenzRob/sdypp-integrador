@@ -233,7 +233,7 @@ router.patch(
   [
     param('id').isUUID().withMessage('Invalid event ID'),
     body('date').optional().isISO8601().withMessage('Valid ISO8601 date required'),
-    body('status').optional().isIn(['active', 'suspended']).withMessage('status must be active or suspended'),
+    body('status').optional().isIn(['active', 'suspended', 'finished']).withMessage('status must be active, suspended or finished'),
   ],
   async (req, res) => {
     const errors = validationResult(req);

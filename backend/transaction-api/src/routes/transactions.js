@@ -36,6 +36,9 @@ router.post(
       if (event.status === 'suspended') {
         return res.status(409).json({ error: 'Event is suspended' });
       }
+      if (event.status === 'finished') {
+        return res.status(409).json({ error: 'Event has already ended' });
+      }
 
       // If nominada, check user doesn't already own a ticket for this event
       if (event.rules && event.rules.nominada) {
@@ -121,6 +124,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'finished') return res.status(409).json({ error: 'Event has already ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
 
       const owner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);
@@ -240,6 +244,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'finished') return res.status(409).json({ error: 'Event has already ended' });
 
       const raw = await redis.hget(`event:${event_id}:listings`, ticket_id);
       if (!raw) return res.status(404).json({ error: 'Listing not found' });
@@ -311,6 +316,9 @@ router.post(
 
       if (event.status === 'suspended') {
         return res.status(409).json({ error: 'Event is suspended' });
+      }
+      if (event.status === 'finished') {
+        return res.status(409).json({ error: 'Event has already ended' });
       }
 
       if (event.rules && event.rules.nominada) {

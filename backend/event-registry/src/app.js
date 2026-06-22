@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config();
 const express = require('express');
+const redis = require('./lib/redis');
 
 const app = express();
 const PORT = process.env.PORT || 3002;
@@ -29,8 +30,42 @@ app.use((err, req, res, next) => {
 const { initBucket } = require('./lib/minio');
 
 initBucket()
-  .then(() => app.listen(PORT, () => console.log(`event-registry running on ${PORT}`)))
+  .then(() => {
+    app.listen(PORT, () => console.log(`event-registry running on ${PORT}`));
+    startEventFinalizer();
+  })
   .catch((err) => {
     console.error('[Startup] MinIO init failed:', err.message);
     process.exit(1);
   });
+
+function startEventFinalizer() {
+  const CHECK_INTERVAL = 30_000;
+
+  async function finalizeExpiredEvents() {
+    try {
+      const eventIds = await redis.lrange('events:list', 0, -1);
+      if (!eventIds || eventIds.length === 0) return;
+
+      for (const id of eventIds) {
+        const raw = await redis.get(`event:${id}`);
+        if (!raw) continue;
+
+        const event = JSON.parse(raw);
+        if (event.status !== 'active') continue;
+
+        const eventDate = new Date(event.date).getTime();
+        if (Date.now() >= eventDate) {
+          event.status = 'finished';
+          await redis.set(`event:${id}`, JSON.stringify(event));
+          console.log(`[Finalizer] Event ${id} (${event.name}) marked as finished`);
+        }
+      }
+    } catch (err) {
+      console.error('[Finalizer] Error checking events:', err.message);
+    }
+  }
+
+  setInterval(finalizeExpiredEvents, CHECK_INTERVAL);
+  console.log(`[Finalizer] Started — checking every ${CHECK_INTERVAL / 1000}s`);
+}
