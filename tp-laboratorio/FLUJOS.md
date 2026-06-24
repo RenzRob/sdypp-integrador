@@ -6,178 +6,206 @@
 
 | Módulo | Tipo | Responsabilidad |
 |---|---|---|
-| **API Gateway** | Servicio HTTP | Punto de entrada único. Autenticación, rate limiting, ruteo. |
-| **Event Registry** | Servicio HTTP | CRUD de creadores y eventos. Genera el bloque génesis al crear un evento. |
-| **Transaction API** | Servicio HTTP | Recibe compras y reventas vía HTTP. Valida ownership y precio contra Redis antes de encolar. |
-| **NCT** (Nodo Coordinador) | Worker | Consume txs de la cola, acumula, forma bloques candidatos, los publica para minería y persiste el bloque confirmado en Redis. |
-| **TrP** (Transaction Pool) | Worker | Consume bloques candidatos, divide el espacio de nonces en rangos y los asigna a los workers disponibles (según keepalives). |
-| **Worker GPU** | Minero | Mina con CUDA (C/C++). Recibe un rango de nonces, prueba hasta encontrar el hash válido, publica el resultado. |
-| **Worker CPU** | Minero | Fallback en Python. Misma interfaz que Worker GPU, se levanta si no hay GPU disponible. |
-| **Access Control API** | Servicio HTTP | Valida una entrada en la puerta consultando el índice de ownership en Redis. No recorre la cadena. |
-| **Status API** | Servicio HTTP | Health check de todos los servicios (requerido por el TP). |
-| **RabbitMQ** | Broker | Un exchange por evento activo. Desacopla todos los servicios asincrónicos. |
-| **Redis** | Base de datos | Persiste la blockchain (`blockchain:{evento_id}`) y el índice de ownership (`ownership:{evento_id}:{entrada_id}`). |
+| **Nginx** | Reverse proxy | Punto de entrada único (`:80`). Rutea `/api/*` a los microservicios, sirve imágenes desde MinIO en `/images/`. |
+| **Auth Service** | Node.js + Express `:3001` | Registro/login. Genera JWT con `{ sub, email, role, wallet_address }`. |
+| **Event Registry** | Node.js + Express `:3002` | CRUD de eventos, carga imágenes a MinIO, genera bloque génesis al crear evento. |
+| **Transaction API** | Node.js + Express `:3003` | Recibe compras y reventas vía HTTP. Publica en `exchange:transactions` (routing `tx.new`). |
+| **Access Control API** | Node.js + Express `:3004` | Valida una entrada en la puerta consultando `ticket:{event_id}:{ticket_id}:owner` en Redis. |
+| **Status API** | Node.js + Express `:3005` | Health check de todos los servicios (pings HTTP). |
+| **NCT** | Python + FastAPI `:8000` | Consume `transactions_q` (`exchange:transactions`), acumula txs, forma bloques candidatos, publica tarea en `exchange:mining` (`task.global`) y persiste el bloque confirmado en Redis. Consume `nct_results_q` (`exchange:nct_results`) para recibir bloques resueltos. |
+| **Mining Gateway** | Python + FastAPI `:8000` | Borde cross-cluster con mTLS. Expone `GET /next-task` (lee `mining_gateway_q`) y `POST /result` (publica en `exchange:nct_results`). Solo recibe llamadas salientes del TrP — no inicia conexión. |
+| **TrP** (Transaction Pool) | Python + FastAPI | Corre en cluster del profe. Hace PULL al mining-gateway: `GET /next-task` con mTLS. Fragmenta el espacio de nonces y publica fragmentos en `exchange:mining_tasks` (`worker.task`). Consume resultados de `exchange:mining_results` (`result.global` y `keepalive.global`). Postea bloque resuelto al gateway con `POST /result`. |
+| **Worker GPU** | C/C++ + CUDA | Consume `mining_tasks_q` (`worker.task`), mina el rango asignado, publica resultado en `exchange:mining_results` (`result.global`). Manda keepalives (`keepalive.global`) cada 5 s. |
+| **Worker CPU** | Python | Igual que Worker GPU pero en CPU con hashlib. Fallback automático si no hay GPU. |
+| **RabbitMQ (cluster-services)** | Broker | Exchanges: `transactions` (tx.new), `mining` (task.global), `nct_results` (nct.result). |
+| **RabbitMQ (cluster-mining)** | Broker | Exchanges: `mining_tasks` (worker.task), `mining_results` (result.global, keepalive.global). |
+| **Redis** | Base de datos | `blockchain:{event_id}` (lista de bloques), `ticket:{event_id}:{ticket_id}:owner`, `ticket:{event_id}:{ticket_id}:resales`. |
+| **PostgreSQL** | Base de datos | Usuarios y sesiones. |
+| **MinIO** | Object Storage | Imágenes de eventos, accesibles públicamente vía Nginx en `/images/`. |
 
 ---
 
-## Flujo 1 — Reventa: request HTTP
+## Flujo 1 — Compra / Reventa: request HTTP
 
 ```
-Usuario
+Browser
   │
-  │  POST /transfer  { from, to, evento_id, entrada_id, precio }
+  │  POST /api/transactions/  { from_wallet, to_wallet, event_id, ticket_id, price, type }
   ▼
-API Gateway
-  │  valida API key / token
+Nginx (:80)
+  │  proxy_pass → transaction-api:3003
   ▼
 Transaction API
-  │  GET ownership:lp-rolling-stones-2026-10-15:SECTOR-A-FILA-12-ASIENTO-5
-  │  → Redis devuelve "usuario_0x4f3a"  ✓ es el dueño
+  │  verifica JWT (wallet_address del token == from_wallet)
+  │  valida ownership en Redis: GET ticket:{event_id}:{ticket_id}:owner
+  │  publica en exchange:transactions  routing_key=tx.new
   │
-  │  GET blockchain:lp-rolling-stones-2026-10-15  LINDEX 0
-  │  → lee bloque génesis → precio_max = 1.5x → 10000 * 1.5 = 15000  ✓
-  │
-  │  PUBLISH → cola txs (RabbitMQ)
-  │
-  └─► HTTP 202 Accepted  (encolada, aún no confirmada)
+  └─► HTTP 202 Accepted  (encolada, pendiente de confirmación en blockchain)
 ```
 
 ---
 
-## Flujo 2 — Reventa: mensajes en las colas
+## Flujo 2 — Procesamiento de la transacción (cluster-services)
 
-### Cola `txs` — Transaction API → NCT
+### Cola `transactions_q` — Transaction API → NCT
 
 ```json
 {
-  "from":       "usuario_0x4f3a",
-  "to":         "usuario_0x9c2b",
-  "evento_id":  "lp-rolling-stones-2026-10-15",
-  "entrada_id": "SECTOR-A-FILA-12-ASIENTO-5",
-  "precio":     15000,
-  "timestamp":  "2026-05-29T20:00:00Z"
+  "tx_id":       "uuid",
+  "type":        "resell",
+  "from_wallet": "0x4f3a1c2b",
+  "to_wallet":   "0x9c2baa11",
+  "event_id":    "lp-rolling-stones-2026-10-15",
+  "ticket_id":   "SECTOR-A-FILA-12-ASIENTO-5",
+  "price":       15000,
+  "timestamp":   "2026-05-29T20:00:00Z"
 }
 ```
 
-El NCT acumula N txs o espera un timeout. Luego lee el último hash de Redis y arma el bloque candidato.
+El NCT acumula hasta `MAX_TX_PER_BLOCK` txs o espera `BLOCK_TIMEOUT` segundos.
+Luego lee el último hash de Redis (`LINDEX blockchain:{event_id} -1`) y arma el bloque candidato.
 
 ---
 
-### Cola `mining_task` — NCT → TrP
+### Cola `mining_gateway_q` — NCT → Mining Gateway
 
 ```json
 {
+  "task_id":         "uuid",
+  "event_id":        "lp-rolling-stones-2026-10-15",
   "block_candidate": {
-    "index":      4,
-    "prev_hash":  "00007e4d2f1a...",
-    "timestamp":  "2026-05-29T20:00:05Z",
-    "data": {
-      "type": "transactions",
-      "txs": [
-        { "from": "usuario_0x4f3a", "to": "usuario_0x9c2b", "entrada_id": "SECTOR-A-FILA-12-ASIENTO-5", "precio": 15000 },
-        { "from": "usuario_0xaa11", "to": "usuario_0xbb22", "entrada_id": "SECTOR-B-FILA-3-ASIENTO-1",  "precio": 12000 }
-      ]
-    }
+    "index":         4,
+    "timestamp":     "2026-05-29T20:00:05Z",
+    "previous_hash": "00007e4d2f1a...",
+    "nonce":         0,
+    "transactions":  [ { "tx_id": "...", "type": "resell", ... } ],
+    "block_type":    "tx",
+    "event_id":      "lp-rolling-stones-2026-10-15"
   },
-  "difficulty": 4
+  "difficulty":        3,
+  "nonce_range_start": 0,
+  "nonce_range_total": 10000000
 }
 ```
 
+El NCT publica en `exchange:mining` routing `task.global` → la tarea queda en `mining_gateway_q`.
+
 ---
 
-### Cola `nonce_range` — TrP → Workers
+## Flujo 3 — Cross-cluster (mTLS HTTPS)
 
-TrP sabe qué workers están vivos por keepalives. Publica un mensaje por worker:
+```
+Mining Gateway (GKE)  ←──── GET /next-task (HTTPS + cert cliente) ─────  TrP (cluster profe)
+                                 long-poll hasta 20 s
+Mining Gateway (GKE)  ←──── POST /result   (HTTPS + cert cliente) ─────  TrP (cluster profe)
+```
+
+El ingress-nginx de GKE verifica el cert de cliente del TrP con la CA propia.
+Si el gateway no tiene tarea disponible, responde `204 No Content` y el TrP vuelve a intentar inmediatamente.
+
+---
+
+## Flujo 4 — Fragmentación y minado (cluster-mining)
+
+### Cola `mining_tasks_q` — TrP → Workers
+
+TrP divide `NONCE_RANGE` (10M) en `FRAGMENTS` rangos iguales y publica uno por worker:
 
 ```json
-// → worker-gpu-1
 {
-  "block_candidate": { "index": 4, "prev_hash": "00007e4d...", "data": { ... } },
-  "range_start": 0,
-  "range_end":   1000000,
-  "worker_id":   "worker-gpu-1"
-}
-
-// → worker-cpu-1
-{
-  "block_candidate": { "index": 4, "prev_hash": "00007e4d...", "data": { ... } },
-  "range_start": 1000000,
-  "range_end":   2000000,
-  "worker_id":   "worker-cpu-1"
+  "task_id":        "uuid",
+  "fragment_id":    "uuid",
+  "event_id":       "lp-rolling-stones-2026-10-15",
+  "block_candidate": { ... },
+  "difficulty":     3,
+  "nonce_start":    0,
+  "nonce_end":      2500000
 }
 ```
 
----
-
-### Cola `mining_result` — Workers → NCT
+### Cola `mining_results_pool_q` — Workers → TrP
 
 **Si encontró el nonce:**
 ```json
 {
-  "block_index": 4,
-  "worker_id":   "worker-gpu-1",
-  "found":       true,
-  "nonce":       482910,
-  "hash":        "00003f9a7c..."
+  "task_id":    "uuid",
+  "fragment_id":"uuid",
+  "found":      true,
+  "nonce":      482910,
+  "hash":       "000a3f9c7c..."
 }
 ```
 
-**Si no encontró en su rango:**
-```json
-{
-  "block_index": 4,
-  "worker_id":   "worker-cpu-1",
-  "found":       false
-}
-```
+**Keepalives** (cada ~5 s mientras mina): se publican en `exchange:mining_results` routing `keepalive.global`.
+Si el TrP no recibe keepalive de un fragmento en `KEEPALIVE_TIMEOUT` segundos, lo redistribuye a otro worker.
 
 ---
 
-### Confirmación — NCT persiste en Redis
-
-El NCT recibe el primer `found: true`, verifica `MD5(bloque + nonce) == hash` y escribe:
+## Flujo 5 — Confirmación del bloque
 
 ```
-RPUSH  blockchain:lp-rolling-stones-2026-10-15
-       '{"index":4,"prev_hash":"00007e4d...","nonce":482910,"hash":"00003f9a7c...","data":{...}}'
-
-SET    ownership:lp-rolling-stones-2026-10-15:SECTOR-A-FILA-12-ASIENTO-5
-       "usuario_0x9c2b"
+TrP  →  POST /result  →  Mining Gateway  →  exchange:nct_results (nct.result)  →  NCT
 ```
 
-Los resultados `found: false` o los que llegan tarde se descartan.
+El NCT:
+1. Verifica `MD5(bloque_sin_nonce + nonce) == hash` y que tenga el prefijo de dificultad.
+2. `RPUSH blockchain:{event_id} <bloque_json>` en Redis.
+3. Actualiza ownership: `SET ticket:{event_id}:{ticket_id}:owner <to_wallet>`.
+4. Si es reventa: `INCR ticket:{event_id}:{ticket_id}:resales`.
 
 ---
 
-## Resumen visual
+## Resumen visual completo
 
 ```
-Usuario
-  │  HTTP POST /transfer
+Browser
+  │ HTTP
   ▼
-API Gateway ──► Transaction API
-                  │  valida en Redis (ownership + precio_max)
-                  │
-                  └──[txs]──► NCT
-                                │  acumula txs, lee prev_hash de Redis
-                                │
-                                └──[mining_task]──► TrP
-                                                      │  divide nonces según keepalives
-                                                      │
-                                          ┌───────────┴───────────┐
-                                          ▼                       ▼
-                                     Worker GPU             Worker CPU
-                                     (C/C++ CUDA)           (Python)
-                                          │                       │
-                                          └───────────┬───────────┘
-                                                      │
-                                               [mining_result]
-                                                      │
-                                                      ▼
-                                                     NCT
-                                                      │  verifica hash
-                                                      ▼
-                                                    Redis
-                                         RPUSH blockchain:{evento_id}
-                                         SET   ownership:{evento_id}:{entrada_id}
+Nginx ──► auth-service ──► PostgreSQL
+       ──► event-registry ──► MinIO / Redis
+       ──► transaction-api ──► Redis
+       │     │
+       │     └──[exchange:transactions, tx.new]──► NCT
+       │                                             │
+       ──► access-control ──► Redis                  │  acumula txs
+       ──► status-api ──► (pings)                    │
+                                                     │
+                                         [exchange:mining, task.global]
+                                                     │
+                                                     ▼
+                                             Mining Gateway
+                                          (expuesto vía ingress + mTLS)
+                                                     ▲
+                                   GET /next-task    │    POST /result
+                                   (HTTPS + mTLS)    │    (HTTPS + mTLS)
+                                                     │
+                                          Transaction Pool (TrP)
+                                                     │
+                               [exchange:mining_tasks, worker.task]
+                                      ┌──────────────┴──────────────┐
+                                      ▼                             ▼
+                                 Worker GPU                    Worker CPU
+                                (C/C++ CUDA)                   (Python)
+                                  MD5 PoW                      MD5 PoW
+                                      │                             │
+                                      └──────────────┬─────────────┘
+                                  [exchange:mining_results, result.global]
+                                                     │
+                                                     ▼
+                                          Transaction Pool (TrP)
+                                                     │
+                                              POST /result
+                                                     │
+                                                     ▼
+                                             Mining Gateway
+                                                     │
+                               [exchange:nct_results, nct.result]
+                                                     │
+                                                     ▼
+                                                    NCT
+                                                     │  verifica hash
+                                                     ▼
+                                                   Redis
+                                      RPUSH blockchain:{event_id}
+                                      SET   ticket:{event_id}:{ticket_id}:owner
 ```

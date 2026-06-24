@@ -1,38 +1,56 @@
 # Infraestructura TicketChain
 
-## Estructura
+## Estructura de directorios
 
 ```
 iac/
-├── local/                — desarrollo local
+├── local/                         — desarrollo local (Docker Compose)
 │   ├── docker-compose.yml
 │   ├── run_local.sh
-│   └── .env              ← commiteado, valores de desarrollo
+│   └── .env                       ← commiteado, valores de desarrollo
 ├── k8s/
-│   ├── config/           — namespace, configmap
-│   ├── deployments/
-│   │   ├── infrastructure/  — postgres, redis, rabbitmq, minio, nginx
-│   │   └── services/        — microservicios de la aplicación
-│   └── network/          — ingress
-└── nginx/                — configuración de nginx (local y k8s)
+│   ├── cluster-services/          — cluster GKE propio (Grupo 404)
+│   │   ├── config/                — namespace, configmap
+│   │   ├── infrastructure/        — postgres, redis, rabbitmq, minio
+│   │   ├── services/              — microservicios de aplicación + mining-gateway
+│   │   └── network/               — ingress (HTTPS público + mTLS para mining-gateway)
+│   └── cluster-mining/            — cluster del profe (g-404)
+│       ├── config/                — configmap
+│       ├── infrastructure/        — rabbitmq local, nvidia-device-plugin
+│       └── services/              — transaction-pool, worker-cpu, worker-gpu
+└── nginx/                         — configuración de nginx (local y k8s)
 ```
 
-## Aplicar al cluster (GKE)
+> Ver `docs/comandos.md` para todos los comandos de despliegue, gestión de secrets y mTLS.
+
+---
+
+## Aplicar al cluster propio (GKE — cluster-services)
 
 ```bash
-kubectl apply -f iac/k8s/config/
-kubectl apply -f iac/k8s/deployments/infrastructure/
-kubectl apply -f iac/k8s/deployments/services/
-kubectl apply -f iac/k8s/network/
+kubectl apply -f iac/k8s/cluster-services/config/
+kubectl apply -f iac/k8s/cluster-services/infrastructure/
+kubectl apply -f iac/k8s/cluster-services/services/
+kubectl apply -f iac/k8s/cluster-services/network/
 ```
 
-> **Importante**: antes de aplicar los deployments, crear los secrets manualmente (ver abajo).
+## Aplicar al cluster del profe (g-404 — cluster-mining)
+
+```bash
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/infrastructure/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/config/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/services/
+```
+
+> El `nvidia-device-plugin.yaml` requiere cluster-admin — lo aplica el profe.
 
 ---
 
 ## Secrets
 
-Los secrets **nunca se commitean** con valores reales. Crearlos manualmente en el cluster:
+Los secrets **nunca se commitean** con valores reales.
+
+### Cluster propio (cluster-services)
 
 ```bash
 kubectl create secret generic ticketchain-secrets \
@@ -41,28 +59,27 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<password> \
   --from-literal=MINIO_ACCESS_KEY=<access key> \
   --from-literal=MINIO_SECRET_KEY=<secret key> \
-  -n ticketchain
+  -n g-404
+
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io --docker-username=RenzRob \
+  --docker-password=<TOKEN> -n g-404
 ```
 
-### Keys requeridas
+### Certificados mTLS (cross-cluster)
 
-| Key | Descripción |
-|---|---|
-| `JWT_SECRET` | String aleatorio para firmar tokens JWT |
-| `POSTGRES_USER` | Usuario de PostgreSQL |
-| `POSTGRES_PASSWORD` | Password de PostgreSQL |
-| `MINIO_ACCESS_KEY` | Usuario de MinIO (mínimo 3 caracteres) |
-| `MINIO_SECRET_KEY` | Password de MinIO (mínimo 8 caracteres) |
+Los certs se generan una vez con `iac/k8s/certs/gen-certs.sh` y se cargan como secrets en ambos clusters. Ver `docs/comandos.md` — sección "Certificados mTLS" para el procedimiento completo.
 
-### Verificar que los secrets existen
+| Secret | Cluster | Contenido |
+|---|---|---|
+| `gateway-tls` | cluster-services | Cert de servidor del ingress (CN = host público del gateway) |
+| `cross-cluster-ca` | cluster-services | CA para verificar el cert de cliente del TrP |
+| `trp-tls` | cluster-mining | Cert de cliente del TrP |
+| `cross-cluster-ca` | cluster-mining | CA para verificar el cert del gateway |
 
-```bash
-kubectl get secret ticketchain-secrets -n ticketchain
-```
-
-### Regenerar un secret
+### Verificar secrets
 
 ```bash
-kubectl delete secret ticketchain-secrets -n ticketchain
-# volver a ejecutar el kubectl create secret de arriba
+kubectl get secrets -n g-404
+kubectl --kubeconfig=renzo.yaml get secrets -n g-404
 ```
