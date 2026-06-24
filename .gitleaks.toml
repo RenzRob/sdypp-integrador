@@ -1,0 +1,51 @@
+# gitleaks config — reglas de detección de secretos para TicketChain.
+# Se aplica en el workflow de CI (job gitleaks) y puede correrse local:
+#   gitleaks detect --source . --config .gitleaks.toml
+
+title = "TicketChain Gitleaks Config"
+
+[extend]
+# Usa las reglas oficiales de gitleaks como base
+useDefault = true
+
+[allowlist]
+description = "Paths y patrones permitidos"
+paths = [
+  # Archivos de ejemplo — contienen placeholders, no valores reales
+  '''.example.yaml''',
+  # Certs compilados en el binario CUDA (no son secretos)
+  '''backend/worker-gpu/cuda/''',
+  # Datos de test/fixtures
+  '''backend/miners/''',
+]
+regexes = [
+  # Placeholders explícitos en los YAMLs
+  '''REEMPLAZAR-con-openssl-rand-hex-32''',
+  '''CAMBIAR-.*\.tu-dominio\.com''',
+  '''<valor>''',
+  '''<TOKEN>''',
+]
+
+[[rules]]
+id = "ticketchain-jwt-secret"
+description = "JWT_SECRET hardcodeado"
+regex = '''JWT_SECRET\s*[=:]\s*["']?[A-Za-z0-9+/]{32,}["']?'''
+severity = "ERROR"
+[rules.allowlist]
+regexes = ['''<valor>''', '''secretKeyRef''', '''REEMPLAZAR''']
+
+[[rules]]
+id = "ticketchain-db-password"
+description = "Contraseña de base de datos hardcodeada"
+regex = '''POSTGRES_PASSWORD\s*[=:]\s*["']?[^\s"'$<{]{8,}["']?'''
+severity = "ERROR"
+[rules.allowlist]
+regexes = ['''<valor>''', '''secretKeyRef''', '''\$\(''', '''\$\{''']
+
+[[rules]]
+id = "ticketchain-minio-secret"
+description = "MinIO secret key hardcodeado"
+regex = '''MINIO_SECRET_KEY\s*[=:]\s*["']?[^\s"'$<{]{8,}["']?'''
+severity = "ERROR"
+[rules.allowlist]
+regexes = ['''<valor>''', '''secretKeyRef''', '''\$\(''', '''\$\{''', '''minioadmin''']
