@@ -19,12 +19,24 @@ spec:
         - name: transaction-pool
           image: ghcr.io/renzrob/transaction-pool:latest
           ports:
-            - containerPort: 8001
+            - containerPort: 8000
           envFrom:
             - configMapRef:
                 name: ticketchain-config
-            - secretRef:
-                name: ticketchain-secrets
+          volumeMounts:
+            - name: tls-cert       # cert+key propio (server del ingress y client al gateway)
+              mountPath: /certs
+              readOnly: true
+            - name: ca-cert        # CA para verificar al mining-gateway
+              mountPath: /ca
+              readOnly: true
+      volumes:
+        - name: tls-cert
+          secret:
+            secretName: trp-tls
+        - name: ca-cert
+          secret:
+            secretName: cross-cluster-ca
 ---
 apiVersion: v1
 kind: Service
@@ -36,5 +48,5 @@ spec:
   selector:
     app: transaction-pool
   ports:
-    - port: 8001
-      targetPort: 8001
+    - port: 8000
+      targetPort: 8000

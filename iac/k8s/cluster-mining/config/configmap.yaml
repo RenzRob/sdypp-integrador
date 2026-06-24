@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketchain-config
+  namespace: g-404
+data:
+  # RabbitMQ LOCAL del cluster del profe (interno, nunca expuesto)
+  RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
+  MINING_DIFFICULTY: "3"
+  # TrP → mining-gateway (callback de resultados). URL pública HTTPS del gateway
+  # en el cluster propio. REEMPLAZAR por el dominio real.
+  GATEWAY_URL: "https://CAMBIAR-gateway.tu-dominio.com"
+  # Fragmentación del espacio de nonces
+  FRAGMENTS: "4"
+  NONCE_RANGE: "10000000"
+  KEEPALIVE_TIMEOUT: "30"

@@ -21,8 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: ticketchain-config
-            - secretRef:
-                name: ticketchain-secrets
           resources:
             requests:
               cpu: "500m"

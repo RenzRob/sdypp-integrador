@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mining-gateway
+  namespace: g-404
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mining-gateway
+  template:
+    metadata:
+      labels:
+        app: mining-gateway
+    spec:
+      imagePullSecrets:
+        - name: ghcr-secret
+      containers:
+        - name: mining-gateway
+          image: ghcr.io/renzrob/mining-gateway:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: ticketchain-config
+          volumeMounts:
+            - name: tls-cert       # cert+key propio (server del ingress y client al TrP)
+              mountPath: /certs
+              readOnly: true
+            - name: ca-cert        # CA para verificar al TrP
+              mountPath: /ca
+              readOnly: true
+      volumes:
+        - name: tls-cert
+          secret:
+            secretName: gateway-tls
+        - name: ca-cert
+          secret:
+            secretName: cross-cluster-ca
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mining-gateway
+  namespace: g-404
+spec:
+  type: ClusterIP
+  selector:
+    app: mining-gateway
+  ports:
+    - port: 8000
+      targetPort: 8000

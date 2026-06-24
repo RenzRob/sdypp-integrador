@@ -54,7 +54,7 @@ docker push ghcr.io/renzrob/<servicio>:latest
 ### Build y push de todos los servicios backend
 
 ```bash
-for svc in worker-cpu worker-gpu transaction-api transaction-pool event-registry status-api access-control auth-service nct; do
+for svc in worker-cpu worker-gpu transaction-api transaction-pool mining-gateway event-registry status-api access-control auth-service nct; do
     docker build --platform linux/amd64 \
         -t "ghcr.io/renzrob/${svc}:latest" \
         "backend/${svc}/"
@@ -83,21 +83,70 @@ docker images | grep ghcr.io/renzrob
 
 ---
 
-## Kubernetes (k8s)
+## Kubernetes (arquitectura de 2 clusters)
 
-Kubeconfig: `renzo.yaml` (raíz del proyecto)
-Namespace: `g-404`
+Los manifests están separados por cluster en `iac/k8s/`:
 
-### Aplicar todo el cluster (en orden)
-
-```bash
-kubectl apply -f iac/k8s/config/
-kubectl apply -f iac/k8s/deployments/infrastructure/
-kubectl apply -f iac/k8s/deployments/services/
-kubectl apply -f iac/k8s/network/
+```
+cluster-services/   → cluster propio (GKE): app, NCT, redis, rabbitmq, mining-gateway
+cluster-mining/    → cluster del profe (g-404): TrP + workers + rabbitmq local (con GPU)
 ```
 
-### Crear secrets
+El tráfico entre clusters va SOLO por HTTPS con **mTLS** (mining-gateway ↔ TrP).
+Ningún RabbitMQ se expone.
+
+### Certificados mTLS entre clusters
+
+```bash
+# 1) Generar CA + certs (usar los dominios reales de cada endpoint)
+GATEWAY_HOST=gateway.midominio.com TRP_HOST=trp.midominio.com \
+  iac/k8s/certs/gen-certs.sh
+# Los certs quedan en iac/k8s/certs/out/ (gitignored — NO se commitean)
+
+# 2) Crear secrets en el CLUSTER PROPIO (mining-gateway)
+kubectl create secret tls gateway-tls \
+  --cert=iac/k8s/certs/out/gateway.crt --key=iac/k8s/certs/out/gateway.key -n <ns-propio>
+kubectl create secret generic cross-cluster-ca \
+  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n <ns-propio>
+
+# 3) Crear secrets en el CLUSTER DEL PROFE (transaction-pool)
+kubectl --kubeconfig=renzo.yaml create secret tls trp-tls \
+  --cert=iac/k8s/certs/out/trp.crt --key=iac/k8s/certs/out/trp.key -n g-404
+kubectl --kubeconfig=renzo.yaml create secret generic cross-cluster-ca \
+  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
+```
+
+Cada servicio usa su `*-tls` como server (en el Ingress) y como client (al llamar
+al otro). El Ingress verifica el cert de cliente contra `cross-cluster-ca`
+(annotations `auth-tls-*`). El `#1` (frontend público) usa HTTPS común, no mTLS.
+
+### Antes de aplicar: completar placeholders
+
+- `cluster-services/config/configmap.yaml` → `TRP_URL` (URL pública HTTPS del TrP)
+- `cluster-mining/config/configmap.yaml` → `GATEWAY_URL` (URL pública HTTPS del gateway)
+- `*/network/*-ingress.yaml` → host real + Secret TLS
+
+### Aplicar cluster propio (GKE)
+
+```bash
+kubectl apply -f iac/k8s/cluster-services/config/
+kubectl apply -f iac/k8s/cluster-services/infrastructure/
+kubectl apply -f iac/k8s/cluster-services/services/
+kubectl apply -f iac/k8s/cluster-services/network/
+```
+
+### Aplicar cluster del profe (g-404)
+
+```bash
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/infrastructure/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/config/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/services/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/network/
+```
+
+> El `nvidia-device-plugin.yaml` requiere cluster-admin → lo aplica el profe.
+
+### Otros secrets (cluster propio)
 
 ```bash
 kubectl create secret generic ticketchain-secrets \
@@ -106,33 +155,23 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<valor> \
   --from-literal=MINIO_ACCESS_KEY=<valor> \
   --from-literal=MINIO_SECRET_KEY=<valor> \
-  -n g-404
+  -n <namespace-propio>
 
 kubectl create secret docker-registry ghcr-secret \
-  --docker-server=ghcr.io \
-  --docker-username=RenzRob \
-  --docker-password=<TOKEN> \
-  -n g-404
+  --docker-server=ghcr.io --docker-username=RenzRob \
+  --docker-password=<TOKEN> -n <namespace>
 ```
 
 ### Comandos útiles
 
 ```bash
-# Ver pods
-kubectl get pods -n g-404
+# Pods del cluster del profe
+kubectl --kubeconfig=renzo.yaml get pods -n g-404
 
-# Ver logs de un servicio
-kubectl logs -f deployment/event-registry -n g-404
+# Logs del TrP / gateway
+kubectl --kubeconfig=renzo.yaml logs -f deployment/transaction-pool -n g-404
+kubectl logs -f deployment/mining-gateway -n <namespace-propio>
 
-# Ver secrets (sin valores)
-kubectl get secrets -n g-404
-
-# Reiniciar un deployment (para que tome nuevos secrets/configmap)
-kubectl rollout restart deployment/event-registry -n g-404
-
-# Ver estado de todos los deployments
-kubectl get deployments -n g-404
-
-# Eliminar todos los recursos del namespace
-kubectl delete all --all -n g-404
+# Reiniciar para tomar configmap/secret nuevos
+kubectl --kubeconfig=renzo.yaml rollout restart deployment/transaction-pool -n g-404
 ```
