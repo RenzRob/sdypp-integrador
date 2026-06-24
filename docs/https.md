@@ -145,74 +145,59 @@ El ingress-nginx de GKE verifica el cert de cliente del TrP antes de que el requ
 
 El TrP también verifica el cert de servidor del gateway usando la misma CA (`verify=CA_CERT`). Así ningún lado puede ser suplantado.
 
+### Cómo se configuró, paso a paso
+
+**Paso 1 — Se generaron los certificados con `gen-certs.sh`**
+
+El script crea una CA propia del proyecto (una autoridad certificadora privada) y dos certificados firmados por ella: uno para el gateway y uno para el TrP. Quedan 6 archivos en `iac/k8s/certs/out/` (están en `.gitignore`, nunca se commitean):
+
+- `ca.crt` / `ca.key` — la CA, la autoridad que firma los otros dos certs
+- `gateway.crt` / `gateway.key` — cert del gateway; tiene el hostname `gateway.34.61.108.95.nip.io` como SAN para que TLS valide que estás hablando con el gateway real
+- `trp.crt` / `trp.key` — cert del TrP; no necesita hostname porque solo lo usa como credencial de cliente (para identificarse, no para ser servidor)
+
+**Paso 2 — Los certs se cargaron como Secrets en cada cluster**
+
+En GKE se crearon dos Secrets:
+- `gateway-tls`: contiene `gateway.crt` + `gateway.key`. Lo usa ingress-nginx para terminar TLS (el "candado" del HTTPS del gateway).
+- `cross-cluster-ca`: contiene `ca.crt`. Lo usa ingress-nginx para verificar que quien llama presenta un cert firmado por esa CA.
+
+En g-404 se crearon otros dos:
+- `trp-tls`: contiene `trp.crt` + `trp.key`. El TrP lo presenta al gateway en cada llamada para identificarse.
+- `cross-cluster-ca`: el mismo `ca.crt`. Lo usa el TrP para verificar que el gateway que responde tiene un cert legítimo (y no es alguien haciéndose pasar por el gateway).
+
+**Paso 3 — Se aplicó el Ingress del gateway en GKE**
+
+El `gateway-ingress.yaml` configura ingress-nginx para que en el endpoint `gateway.34.61.108.95.nip.io`:
+- Sirva HTTPS usando el cert `gateway-tls`
+- **Exija** que el cliente presente un cert de cliente firmado por la CA en `cross-cluster-ca` — si no hay cert o es inválido, ingress-nginx corta la conexión con 400 antes de que el request llegue al pod del gateway
+
+**Paso 4 — Se deployaron los pods con los certs montados**
+
+Los deployments del gateway (GKE) y del TrP (g-404) montan los Secrets como archivos dentro del pod:
+- `/certs/tls.crt` y `/certs/tls.key` — el cert propio (gateway o TrP según el pod)
+- `/ca/ca.crt` — la CA para verificar al otro lado
+
+**Paso 5 — El código usa esos archivos en cada llamada HTTP**
+
+En `pool.py`, cada vez que el TrP llama al gateway hace:
+```python
+requests.get(GATEWAY_URL, cert=("/certs/tls.crt", "/certs/tls.key"), verify="/ca/ca.crt")
+```
+Esto significa: "presentá el cert del TrP al conectarte, y verificá que el servidor tenga un cert firmado por nuestra CA".
+
+El gateway no necesita código para verificar al TrP — eso ya lo hace ingress-nginx antes de que el request llegue al pod.
+
+**Así queda en runtime:**
+
+El TrP inicia la conexión → presenta `trp.crt` → ingress-nginx verifica contra `ca.crt` → si válido, pasa el request al pod del gateway → el pod responde → el TrP verifica que el cert del gateway (`gateway.crt`) fue firmado por la misma CA → si válido, procesa la respuesta. Si cualquiera de las dos verificaciones falla, la conexión se corta.
+
 ### Archivos relevantes
 ```
-iac/k8s/certs/gen-certs.sh                                    # Genera CA + certs
-iac/k8s/cluster-services/network/gateway-ingress.yaml         # Ingress con auth-tls-*
-iac/k8s/cluster-services/services/mining-gateway-deployment.yaml   # monta certs en /certs /ca
-iac/k8s/cluster-mining/services/transaction-pool-deployment.yaml   # monta certs en /certs /ca
-backend/mining-gateway/main.py                                 # no valida en código (lo hace Ingress)
-backend/transaction-pool/pool.py                               # requests con cert= y verify=
-```
-
-### Comandos para setup (ya aplicados, solo si hay que rehacer)
-
-**Paso 1: Generar CA + certificados**
-```bash
-# El cert del gateway tiene el SAN = hostname real del gateway
-GATEWAY_HOST=gateway.34.61.108.95.nip.io \
-  iac/k8s/certs/gen-certs.sh
-
-# Quedan en iac/k8s/certs/out/ (gitignored — NO commitear)
-#   ca.crt         ← CA del proyecto
-#   ca.key         ← clave privada de la CA (guardar segura)
-#   gateway.crt    ← cert de servidor del gateway (SAN = nip.io hostname)
-#   gateway.key    ← clave privada del gateway
-#   trp.crt        ← cert de cliente del TrP (solo se usa para identificarse)
-#   trp.key        ← clave privada del TrP
-```
-
-**Paso 2: Crear Secrets en GKE (mining-gateway)**
-```bash
-# TLS del Ingress del gateway (cert de servidor)
-kubectl create secret tls gateway-tls \
-  --cert=iac/k8s/certs/out/gateway.crt \
-  --key=iac/k8s/certs/out/gateway.key \
-  -n g-404
-
-# CA para verificar el cert de cliente del TrP
-kubectl create secret generic cross-cluster-ca \
-  --from-file=ca.crt=iac/k8s/certs/out/ca.crt \
-  -n g-404
-```
-
-**Paso 3: Crear Secrets en g-404 (transaction-pool)**
-```bash
-# Cert de cliente del TrP (se presenta al gateway)
-kubectl --kubeconfig=renzo.yaml create secret tls trp-tls \
-  --cert=iac/k8s/certs/out/trp.crt \
-  --key=iac/k8s/certs/out/trp.key \
-  -n g-404
-
-# CA para verificar el cert de servidor del gateway
-kubectl --kubeconfig=renzo.yaml create secret generic cross-cluster-ca \
-  --from-file=ca.crt=iac/k8s/certs/out/ca.crt \
-  -n g-404
-```
-
-**Verificar que mTLS funciona**
-```bash
-# Con cert de cliente → debe responder 204 (sin tarea) o 200 (con tarea JSON)
-curl -s -o /dev/null -w "CON cert → HTTP %{http_code}\n" \
-  --cert iac/k8s/certs/out/trp.crt \
-  --key  iac/k8s/certs/out/trp.key \
-  --cacert iac/k8s/certs/out/ca.crt \
-  https://gateway.34.61.108.95.nip.io/next-task
-
-# Sin cert de cliente → debe rechazar con 400
-curl -s -o /dev/null -w "SIN cert → HTTP %{http_code}\n" \
-  --cacert iac/k8s/certs/out/ca.crt \
-  https://gateway.34.61.108.95.nip.io/next-task
+iac/k8s/certs/gen-certs.sh                                         # genera CA + certs
+iac/k8s/cluster-services/network/gateway-ingress.yaml              # Ingress con verificación mTLS
+iac/k8s/cluster-services/services/mining-gateway-deployment.yaml   # monta /certs y /ca en el pod
+iac/k8s/cluster-mining/services/transaction-pool-deployment.yaml   # monta /certs y /ca en el pod
+backend/transaction-pool/pool.py                                    # usa cert= y verify= en requests
 ```
 
 ---
