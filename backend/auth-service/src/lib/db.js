@@ -23,12 +23,18 @@ async function initSchema() {
 }
 
 async function seedAdmin() {
-  const password_hash = await bcrypt.hash('admin', 12);
+  const email = process.env.ADMIN_EMAIL;
+  const password = process.env.ADMIN_PASSWORD;
+  if (!email || !password) {
+    console.warn('[DB] ADMIN_EMAIL / ADMIN_PASSWORD not set — skipping admin seed');
+    return;
+  }
+  const password_hash = await bcrypt.hash(password, 12);
   await pool.query(
     `INSERT INTO users (id, email, password_hash, role, wallet_address)
-     VALUES (gen_random_uuid(), 'ticket_chain_admin@gmail.com', $1, 'admin', NULL)
+     VALUES (gen_random_uuid(), $2, $1, 'admin', NULL)
      ON CONFLICT (email) DO NOTHING`,
-    [password_hash]
+    [password_hash, email]
   );
   console.log('[DB] Admin user ready');
 }

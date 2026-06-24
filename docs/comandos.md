@@ -123,6 +123,8 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<valor> \
   --from-literal=MINIO_ACCESS_KEY=<valor> \
   --from-literal=MINIO_SECRET_KEY=<valor> \
+  --from-literal=ADMIN_EMAIL=<email> \
+  --from-literal=ADMIN_PASSWORD=<password> \
   -n g-404
 
 kubectl create secret docker-registry ghcr-secret \
@@ -210,6 +212,8 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<valor> \
   --from-literal=MINIO_ACCESS_KEY=<valor> \
   --from-literal=MINIO_SECRET_KEY=<valor> \
+  --from-literal=ADMIN_EMAIL=<email> \
+  --from-literal=ADMIN_PASSWORD=<password> \
   -n g-404
 
 kubectl create secret docker-registry ghcr-secret \

@@ -41,6 +41,16 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: DATABASE_URL
               value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/ticketchain"
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: ADMIN_EMAIL
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: ADMIN_PASSWORD
 ---
 apiVersion: v1
 kind: Service
