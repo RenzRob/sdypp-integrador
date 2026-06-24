@@ -33,3 +33,4 @@ Thumbs.db
 # ── Claude ────────────────────────────────────────────────────────────────────
 .claude/worktrees/
 renzo.yaml
+frontend/package-lock.json
