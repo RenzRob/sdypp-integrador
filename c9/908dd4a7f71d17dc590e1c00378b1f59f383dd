@@ -1,0 +1,33 @@
+backend/nct/blockchain.py
+  s_8923533fcdec4a::t_95559fe5fea5ad 5-14,22
+backend/worker-cpu/miner.py
+  s_8923533fcdec4a::t_fb5cd6d9a151af 6-10,21,25-26
+backend/nct/nct.py
+  s_8923533fcdec4a::t_ab999d9513d049 13
+iac/nginx/nginx.conf
+  s_8923533fcdec4a::t_83af05e065d0f5 9-11
+backend/transaction-pool/pool.py
+  s_8923533fcdec4a::t_187b18608148de 157
+  s_8923533fcdec4a::t_a3ede21e7d3856 312
+  s_8923533fcdec4a::t_9e59bda258e363 46-52
+iac/k8s/cluster-services/config/configmap.yaml
+  s_8923533fcdec4a::t_0c8e6ccf16bca1 15
+iac/local/docker-compose.yml
+  s_8923533fcdec4a::t_f8b11dff4932b2 155-164,169-171,177-178
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "c9908dd4a7f71d17dc590e1c00378b1f59f383dd",
+  "prompts": {},
+  "sessions": {
+    "s_8923533fcdec4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dd0e1f59-84a5-4d02-8bb6-9743bcc7435e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
