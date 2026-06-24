@@ -44,20 +44,6 @@ services:
     ports:
       - "15672:15672"
 
-  frontend:
-    build:
-      context: ../../frontend
-    env_file: .env
-    ports:
-      - "5173:5173"
-    networks:
-      - ticketchain-net
-    depends_on:
-      redis:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-
   auth-service:
     build:
       context: ../../backend/auth-service
@@ -191,13 +177,13 @@ services:
 
   nginx:
     build:
-      context: ../nginx
+      context: ../..
+      dockerfile: iac/nginx/Dockerfile
     ports:
       - "80:80"
     networks:
       - ticketchain-net
     depends_on:
-      - frontend
       - auth-service
       - event-registry
       - transaction-api

@@ -6,12 +6,23 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',
-    allowedHosts: true,
+    allowedHosts: 'all',
+    hmr: {
+      host: 'localhost',
+      port: 80,
+      protocol: 'ws',
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:80',
+        target: 'http://nginx:80',
         changeOrigin: true
       }
     }
+  },
+  // vite preview usa esta sección (distinta de server)
+  preview: {
+    port: 5173,
+    host: '0.0.0.0',
+    allowedHosts: 'all',
   }
 })
