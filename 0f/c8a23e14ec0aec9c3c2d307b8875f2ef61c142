@@ -1,0 +1,20 @@
+.github/workflows/ci-cd.yml
+  s_8923533fcdec4a::t_be12aad4945017 104
+  s_8923533fcdec4a::t_6c207cdd3f2440 70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "0fc8a23e14ec0aec9c3c2d307b8875f2ef61c142",
+  "prompts": {},
+  "sessions": {
+    "s_8923533fcdec4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dd0e1f59-84a5-4d02-8bb6-9743bcc7435e",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
