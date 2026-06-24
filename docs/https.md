@@ -64,80 +64,33 @@ cert-manager                Let's Encrypt             Browser del usuario
 - **cert-manager** v1.20.2 + `ClusterIssuer` `letsencrypt-prod`: orquesta el challenge, solicita el cert, lo almacena y lo renueva (cada ~60 días, antes de que venza)
 - **Secret** `ticketchain-tls` en namespace `g-404`: almacena el cert+key actual, lo rota cert-manager sin intervención manual
 
-### Qué hace cada archivo
+### Qué hace cada archivo y qué pasa al aplicarlos
 
-**`cluster-issuer.yaml`** — le dice a cert-manager *cómo* pedir certificados:
+**Paso 1 — Se aplica `cluster-issuer.yaml`**
 
-```yaml
-apiVersion: cert-manager.io/v1
-kind: ClusterIssuer          # recurso cluster-scoped (disponible para todos los namespaces)
-metadata:
-  name: letsencrypt-prod     # nombre que referencian los Ingress
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory  # endpoint de Let's Encrypt producción
-    email: renzomartinrobles99@gmail.com  # LE envía alertas de expiración a este mail
-    privateKeySecretRef:
-      name: letsencrypt-prod  # Secret donde cert-manager guarda la clave privada de la cuenta ACME
-                              # (se crea automáticamente la primera vez)
-    solvers:
-      - http01:
-          ingress:
-            ingressClassName: nginx  # usa ingress-nginx para servir el challenge
-```
+Registra en el cluster una "cuenta" en Let's Encrypt y guarda la configuración de cómo pedir certs (usando HTTP-01 via ingress-nginx). No emite ningún cert todavía. Solo queda guardado en el cluster un objeto llamado `letsencrypt-prod` que cert-manager va a consultar después.
 
-Qué genera al aplicarse: un objeto `ClusterIssuer` en el cluster. Por sí solo no hace nada; es una "configuración de fábrica" que cert-manager consulta cada vez que necesita emitir o renovar un cert. También crea el Secret `letsencrypt-prod` con la clave privada de la cuenta registrada en Let's Encrypt.
+**Paso 2 — Se aplica `ingress.yaml`**
 
----
+Pasan dos cosas al mismo tiempo:
 
-**`ingress.yaml`** — le dice a Kubernetes *qué tráfico entra y con qué cert*:
+- **ingress-nginx** lee las reglas de ruteo: "todo lo que llegue a `ticketchain404.duckdns.org` mandalo al servicio `frontend-service:5173`". Lo aplica de inmediato, pero todavía sin HTTPS (el cert no existe aún).
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ticketchain-frontend
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod  # ← dispara la emisión del cert
-                                                       # cert-manager detecta esta anotación
-                                                       # y usa el ClusterIssuer indicado
-spec:
-  ingressClassName: nginx       # usa ingress-nginx como controller
-  tls:
-    - hosts:
-        - ticketchain404.duckdns.org
-      secretName: ticketchain-tls  # cert-manager crea/actualiza este Secret con el cert
-                                   # ingress-nginx lo lee para terminar TLS en puerto 443
-  rules:
-    - host: ticketchain404.duckdns.org
-      http:
-        paths:
-          - path: /
-            backend:
-              service:
-                name: frontend-service
-                port:
-                  number: 5173
-```
+- **cert-manager** detecta la anotación `cert-manager.io/cluster-issuer: letsencrypt-prod` en ese Ingress y arranca el proceso de emisión del cert.
 
-Qué genera al aplicarse:
-1. El objeto `Ingress` en k8s que instruye a ingress-nginx sobre el ruteo
-2. Automáticamente (por la anotación), cert-manager detecta el Ingress y crea un objeto `Certificate` interno
-3. cert-manager ejecuta el challenge HTTP-01 (crea un Ingress temporario para servir el token)
-4. Una vez que Let's Encrypt verifica, cert-manager crea el Secret `ticketchain-tls` con `tls.crt` y `tls.key`
-5. ingress-nginx lee ese Secret y empieza a servir HTTPS en `ticketchain404.duckdns.org`
+**Paso 3 — cert-manager ejecuta el challenge HTTP-01**
 
-**La cadena de dependencia completa:**
-```
-DuckDNS (DNS) → ingress-nginx (recibe el tráfico) → Ingress (ruteo) → frontend-service:5173
-                                                              ↑
-                        cert-manager ←── ClusterIssuer ───────┘
-                        (emite cert)      (instrucciones)
-                              ↓
-                        Secret ticketchain-tls (cert+key)
-                              ↓
-                        ingress-nginx (termina TLS con ese cert)
-```
+cert-manager le pide a Let's Encrypt un cert para `ticketchain404.duckdns.org`. Let's Encrypt responde: "primero probá que controlás ese dominio". Para probarlo, cert-manager crea un Ingress temporario en el cluster que sirve un archivo especial en `http://ticketchain404.duckdns.org/.well-known/acme-challenge/<token>`. Let's Encrypt hace un GET a esa URL. Como DuckDNS apunta el dominio a la IP del cluster, el GET llega, y Let's Encrypt verifica que el token es correcto.
+
+**Paso 4 — Let's Encrypt emite el cert**
+
+Una vez verificado, Let's Encrypt entrega el certificado firmado a cert-manager. cert-manager lo guarda en un Secret llamado `ticketchain-tls` (con los campos `tls.crt` y `tls.key`). El Ingress temporario del challenge se elimina solo.
+
+**Paso 5 — ingress-nginx empieza a servir HTTPS**
+
+ingress-nginx detecta que el Secret `ticketchain-tls` ya existe, lo carga y empieza a terminar TLS en el puerto 443. A partir de acá `https://ticketchain404.duckdns.org` funciona con cert confiable. El HTTP (puerto 80) redirige a HTTPS automáticamente.
+
+**Renovación automática:** cert-manager monitorea el Secret. Cuando el cert está por vencer (~30 días antes), repite los pasos 3-5 solo, sin intervención manual.
 
 ### Archivos relevantes
 ```
