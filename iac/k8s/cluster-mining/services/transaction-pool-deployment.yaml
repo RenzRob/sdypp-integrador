@@ -18,16 +18,15 @@ spec:
       containers:
         - name: transaction-pool
           image: ghcr.io/renzrob/transaction-pool:latest
-          ports:
-            - containerPort: 8000
+          # Sin puerto: es un proceso PULL, no recibe conexiones (solo sale).
           envFrom:
             - configMapRef:
                 name: ticketchain-config
           volumeMounts:
-            - name: tls-cert       # cert+key propio (server del ingress y client al gateway)
+            - name: tls-cert       # cert+key de cliente (lo presenta al gateway)
               mountPath: /certs
               readOnly: true
-            - name: ca-cert        # CA para verificar al mining-gateway
+            - name: ca-cert        # CA para verificar el cert de server del gateway
               mountPath: /ca
               readOnly: true
       volumes:
@@ -37,16 +36,3 @@ spec:
         - name: ca-cert
           secret:
             secretName: cross-cluster-ca
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: transaction-pool
-  namespace: g-404
-spec:
-  type: ClusterIP
-  selector:
-    app: transaction-pool
-  ports:
-    - port: 8000
-      targetPort: 8000

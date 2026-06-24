@@ -19,10 +19,10 @@ spec:
   ingressClassName: nginx
   tls:
     - hosts:
-        - CAMBIAR-gateway.tu-dominio.com
+        - gateway.34.61.108.95.nip.io
       secretName: gateway-tls
   rules:
-    - host: CAMBIAR-gateway.tu-dominio.com
+    - host: gateway.34.61.108.95.nip.io
       http:
         paths:
           - path: /

@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 #
-# Genera la CA + los certificados (server/client) para el mTLS entre clusters.
+# Genera la CA + los certificados para el mTLS entre clusters (modelo PULL).
 #
-#   gateway  → usado por el mining-gateway (server de su ingress + client al llamar al TrP)
-#   trp      → usado por el transaction-pool (server de su ingress + client al llamar al gateway)
+#   gateway → cert de SERVER del mining-gateway (lo usa el Ingress nginx de GKE).
+#             Su SAN debe matchear el host público del gateway.
+#   trp     → cert de CLIENTE del transaction-pool (lo presenta al gateway).
+#             El SAN no se usa (se valida por CA), es solo un label.
 #
 # Uso:
-#   GATEWAY_HOST=gateway.midominio.com TRP_HOST=trp.midominio.com ./gen-certs.sh
+#   GATEWAY_HOST=gateway.34.61.108.95.nip.io ./gen-certs.sh
 #
 # Los .key son privados: NO commitear (out/ está en .gitignore).
 set -euo pipefail
 
-GATEWAY_HOST="${GATEWAY_HOST:-CAMBIAR-gateway.tu-dominio.com}"
-TRP_HOST="${TRP_HOST:-CAMBIAR-trp.tu-dominio.com}"
+# Host público del gateway en GKE (nip.io = IP del ingress-nginx, sin registrar dominio)
+GATEWAY_HOST="${GATEWAY_HOST:-gateway.34.61.108.95.nip.io}"
+TRP_HOST="${TRP_HOST:-trp-client}"
 OUT="${OUT:-$(dirname "$0")/out}"
 DAYS=3650
 

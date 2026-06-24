@@ -92,39 +92,40 @@ cluster-services/   → cluster propio (GKE): app, NCT, redis, rabbitmq, mining-
 cluster-mining/    → cluster del profe (g-404): TrP + workers + rabbitmq local (con GPU)
 ```
 
-El tráfico entre clusters va SOLO por HTTPS con **mTLS** (mining-gateway ↔ TrP).
-Ningún RabbitMQ se expone.
+**Modelo PULL:** g-404 no expone nada. El TrP hace solo llamadas SALIENTES al
+mining-gateway (pide tarea con `GET /next-task`, postea resultado con `POST /result`).
+El único endpoint público es el mining-gateway en GKE, detrás de ingress-nginx con
+**mTLS**. Ningún RabbitMQ se expone.
 
-### Certificados mTLS entre clusters
+```
+NCT → queue:mining → mining-gateway ← GET /next-task ← TrP → workers
+                     mining-gateway ← POST /result   ← TrP
+mining-gateway → queue:nct_results → NCT
+```
+
+### Certificados mTLS
 
 ```bash
-# 1) Generar CA + certs (usar los dominios reales de cada endpoint)
-GATEWAY_HOST=gateway.midominio.com TRP_HOST=trp.midominio.com \
-  iac/k8s/certs/gen-certs.sh
+# 1) Generar CA + certs. El SAN del cert del gateway = host público del gateway.
+#    (nip.io = IP del ingress-nginx de GKE, sin registrar dominio)
+GATEWAY_HOST=gateway.34.61.108.95.nip.io iac/k8s/certs/gen-certs.sh
 # Los certs quedan en iac/k8s/certs/out/ (gitignored — NO se commitean)
 
-# 2) Crear secrets en el CLUSTER PROPIO (mining-gateway)
+# 2) GKE (cluster-services): gateway-tls = cert de SERVER del ingress; CA para verificar al TrP
 kubectl create secret tls gateway-tls \
-  --cert=iac/k8s/certs/out/gateway.crt --key=iac/k8s/certs/out/gateway.key -n <ns-propio>
+  --cert=iac/k8s/certs/out/gateway.crt --key=iac/k8s/certs/out/gateway.key -n g-404
 kubectl create secret generic cross-cluster-ca \
-  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n <ns-propio>
+  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
 
-# 3) Crear secrets en el CLUSTER DEL PROFE (transaction-pool)
+# 3) g-404 (cluster-mining): trp-tls = cert de CLIENTE que el TrP presenta; CA para verificar al gateway
 kubectl --kubeconfig=renzo.yaml create secret tls trp-tls \
   --cert=iac/k8s/certs/out/trp.crt --key=iac/k8s/certs/out/trp.key -n g-404
 kubectl --kubeconfig=renzo.yaml create secret generic cross-cluster-ca \
   --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
 ```
 
-Cada servicio usa su `*-tls` como server (en el Ingress) y como client (al llamar
-al otro). El Ingress verifica el cert de cliente contra `cross-cluster-ca`
+El ingress-nginx de GKE verifica el cert de cliente del TrP contra `cross-cluster-ca`
 (annotations `auth-tls-*`). El `#1` (frontend público) usa HTTPS común, no mTLS.
-
-### Antes de aplicar: completar placeholders
-
-- `cluster-services/config/configmap.yaml` → `TRP_URL` (URL pública HTTPS del TrP)
-- `cluster-mining/config/configmap.yaml` → `GATEWAY_URL` (URL pública HTTPS del gateway)
-- `*/network/*-ingress.yaml` → host real + Secret TLS
 
 ### Aplicar cluster propio (GKE)
 
@@ -141,7 +142,6 @@ kubectl apply -f iac/k8s/cluster-services/network/
 kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/infrastructure/
 kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/config/
 kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/services/
-kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/network/
 ```
 
 > El `nvidia-device-plugin.yaml` requiere cluster-admin → lo aplica el profe.
@@ -155,11 +155,11 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<valor> \
   --from-literal=MINIO_ACCESS_KEY=<valor> \
   --from-literal=MINIO_SECRET_KEY=<valor> \
-  -n <namespace-propio>
+  -n g-404
 
 kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io --docker-username=RenzRob \
-  --docker-password=<TOKEN> -n <namespace>
+  --docker-password=<TOKEN> -n g-404
 ```
 
 ### Comandos útiles
@@ -170,7 +170,7 @@ kubectl --kubeconfig=renzo.yaml get pods -n g-404
 
 # Logs del TrP / gateway
 kubectl --kubeconfig=renzo.yaml logs -f deployment/transaction-pool -n g-404
-kubectl logs -f deployment/mining-gateway -n <namespace-propio>
+kubectl logs -f deployment/mining-gateway -n g-404
 
 # Reiniciar para tomar configmap/secret nuevos
 kubectl --kubeconfig=renzo.yaml rollout restart deployment/transaction-pool -n g-404

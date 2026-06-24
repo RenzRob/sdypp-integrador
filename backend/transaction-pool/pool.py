@@ -33,6 +33,9 @@ FRAGMENTS = int(os.environ.get("FRAGMENTS", "4"))
 NONCE_RANGE = int(os.environ.get("NONCE_RANGE", "10000000"))
 KEEPALIVE_TIMEOUT = int(os.environ.get("KEEPALIVE_TIMEOUT", "30"))
 HTTP_TIMEOUT = float(os.environ.get("HTTP_TIMEOUT", "10"))
+# Polling al gateway: debe ser mayor que el POLL_WAIT del gateway (20s) para no
+# cortar el long-poll desde el lado cliente.
+POLL_TIMEOUT = float(os.environ.get("POLL_TIMEOUT", "30"))
 
 # mTLS: cert+key de cliente propio y CA para verificar al mining-gateway.
 CLIENT_CERT = os.environ.get("CLIENT_CERT_PATH", "/certs/tls.crt")
@@ -285,3 +288,31 @@ class TransactionPool:
             ch_results.start_consuming()
         except Exception as e:
             logger.error(f"Results consumer error: {e}")
+
+    # ── Polling al gateway (modelo PULL: solo llamadas salientes) ──────────────
+
+    def poll_loop(self):
+        """Pide tareas al gateway por HTTPS+mTLS y las fragmenta para los workers.
+
+        g-404 no expone nada: este loop hace solo llamadas SALIENTES, presentando
+        el cert de cliente y verificando el cert de server del gateway con la CA.
+        """
+        logger.info(f"TrP poll loop started → {GATEWAY_URL}/next-task")
+        while True:
+            try:
+                resp = requests.get(
+                    f"{GATEWAY_URL}/next-task",
+                    cert=(CLIENT_CERT, CLIENT_KEY),
+                    verify=CA_CERT,
+                    timeout=POLL_TIMEOUT,
+                )
+                if resp.status_code == 200:
+                    self.submit_task(resp.json())
+                elif resp.status_code == 204:
+                    continue  # no hay tarea, volver a pollear
+                else:
+                    logger.warning(f"next-task respondió {resp.status_code}")
+                    time.sleep(3)
+            except Exception as e:
+                logger.warning(f"poll error: {e}")
+                time.sleep(3)

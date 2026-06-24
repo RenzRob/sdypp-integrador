@@ -23,20 +23,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: ticketchain-config
-          volumeMounts:
-            - name: tls-cert       # cert+key propio (server del ingress y client al TrP)
-              mountPath: /certs
-              readOnly: true
-            - name: ca-cert        # CA para verificar al TrP
-              mountPath: /ca
-              readOnly: true
-      volumes:
-        - name: tls-cert
-          secret:
-            secretName: gateway-tls
-        - name: ca-cert
-          secret:
-            secretName: cross-cluster-ca
+      # El TLS/mTLS lo termina el Ingress; el pod sirve HTTP plano por dentro.
 ---
 apiVersion: v1
 kind: Service

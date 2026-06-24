@@ -15,6 +15,4 @@ data:
   CORS_ORIGIN: "http://ticketchain.local"
   MINING_DIFFICULTY: "3"
   NODE_ENV: "production"
-  # mining-gateway → TrP. URL pública HTTPS del TrP en el cluster del profe.
-  # REEMPLAZAR por el dominio real.
-  TRP_URL: "https://CAMBIAR-trp.tu-dominio.com"
+  # Modelo PULL: el gateway no llama al TrP (el TrP hace polling). No hace falta TRP_URL.
