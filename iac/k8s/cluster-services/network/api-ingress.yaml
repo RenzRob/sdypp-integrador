@@ -1,5 +1,5 @@
 # Ruteo /api/* y /images/* directo del ingress-nginx a cada backend (sin nginx
-# interno). Replica el mapeo del antiguo iac/nginx/nginx.conf.
+# interno). Replica el mapeo del antiguo iac/local/nginx/nginx.conf.
 # Van como Ingress separados porque cada grupo usa un rewrite-target distinto.
 ---
 # auth | events | transactions | access  →  /api/X/* → <service>/X/*

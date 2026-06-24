@@ -178,7 +178,7 @@ services:
   nginx:
     build:
       context: ../..
-      dockerfile: iac/nginx/Dockerfile
+      dockerfile: iac/local/nginx/Dockerfile
     ports:
       - "80:80"
     networks:

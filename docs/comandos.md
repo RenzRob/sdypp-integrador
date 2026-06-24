@@ -68,7 +68,7 @@ done
 docker build --platform linux/amd64 -t ghcr.io/renzrob/frontend:latest frontend/
 docker push ghcr.io/renzrob/frontend:latest
 
-docker build --platform linux/amd64 -t ghcr.io/renzrob/nginx:latest iac/nginx/
+docker build --platform linux/amd64 -t ghcr.io/renzrob/nginx:latest iac/local/nginx/
 docker push ghcr.io/renzrob/nginx:latest
 ```
 
@@ -80,6 +80,86 @@ docker images | grep ghcr.io/renzrob
 
 > **Nota zsh:** usar siempre `"ghcr.io/renzrob/${svc}:latest"` con llaves y comillas.
 > Sin llaves, zsh interpreta `:l` como modificador lowercase y corrompe el tag.
+
+---
+
+## Despliegue cluster propio (GKE)
+
+Flujo completo desde cero. Los pasos 1 y 2 son con OpenTofu; el 3 en adelante con kubectl.
+
+### Paso 1 — Autenticarse con GCP
+
+```bash
+gcloud auth application-default login
+```
+
+### Paso 2 — Provisionar infra con OpenTofu
+
+Crea el cluster GKE, el node pool, instala ingress-nginx y cert-manager.
+
+```bash
+cd iac/tofu/cluster-services
+tofu init       # solo la primera vez
+tofu plan       # ver qué va a crear/cambiar
+tofu apply      # aplicar
+cd ../..
+```
+
+Obtener credenciales del cluster recién creado:
+
+```bash
+gcloud container clusters get-credentials app-cluster \
+  --region us-central1 --project proyecto-sobel-grupo404
+```
+
+> Para destruir todo el cluster: `tofu destroy` (desde `iac/tofu/cluster-services/`)
+
+### Paso 3 — Crear secrets (cluster propio)
+
+```bash
+kubectl create secret generic ticketchain-secrets \
+  --from-literal=JWT_SECRET=<valor> \
+  --from-literal=POSTGRES_USER=<valor> \
+  --from-literal=POSTGRES_PASSWORD=<valor> \
+  --from-literal=MINIO_ACCESS_KEY=<valor> \
+  --from-literal=MINIO_SECRET_KEY=<valor> \
+  -n g-404
+
+kubectl create secret docker-registry ghcr-secret \
+  --docker-server=ghcr.io --docker-username=RenzRob \
+  --docker-password=<TOKEN> -n g-404
+```
+
+### Paso 4 — Certificados mTLS (cross-cluster)
+
+```bash
+# Generar CA + certs. El SAN del cert del gateway = host público del gateway.
+GATEWAY_HOST=gateway.34.61.108.95.nip.io iac/k8s/certs/gen-certs.sh
+# Los certs quedan en iac/k8s/certs/out/ (gitignored — NO se commitean)
+
+# GKE: cert de servidor del ingress + CA para verificar al TrP
+kubectl create secret tls gateway-tls \
+  --cert=iac/k8s/certs/out/gateway.crt --key=iac/k8s/certs/out/gateway.key -n g-404
+kubectl create secret generic cross-cluster-ca \
+  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
+
+# g-404: cert de cliente del TrP + CA para verificar al gateway
+kubectl --kubeconfig=renzo.yaml create secret tls trp-tls \
+  --cert=iac/k8s/certs/out/trp.crt --key=iac/k8s/certs/out/trp.key -n g-404
+kubectl --kubeconfig=renzo.yaml create secret generic cross-cluster-ca \
+  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
+```
+
+### Paso 5 — Aplicar manifiestos k8s (cluster propio)
+
+Los microservicios, infraestructura de la app e ingress se gestionan con kubectl (no con tofu).
+
+```bash
+kubectl apply -f iac/k8s/cluster-services/config/
+kubectl apply -f iac/k8s/cluster-services/infrastructure/
+kubectl apply -f iac/k8s/cluster-services/services/
+kubectl apply -f iac/k8s/cluster-services/network/
+```
 
 ---
 
@@ -103,37 +183,12 @@ NCT → queue:mining → mining-gateway ← GET /next-task ← TrP → workers
 mining-gateway → queue:nct_results → NCT
 ```
 
-### Certificados mTLS
+### Aplicar cluster del profe (g-404)
 
 ```bash
-# 1) Generar CA + certs. El SAN del cert del gateway = host público del gateway.
-#    (nip.io = IP del ingress-nginx de GKE, sin registrar dominio)
-GATEWAY_HOST=gateway.34.61.108.95.nip.io iac/k8s/certs/gen-certs.sh
-# Los certs quedan en iac/k8s/certs/out/ (gitignored — NO se commitean)
-
-# 2) GKE (cluster-services): gateway-tls = cert de SERVER del ingress; CA para verificar al TrP
-kubectl create secret tls gateway-tls \
-  --cert=iac/k8s/certs/out/gateway.crt --key=iac/k8s/certs/out/gateway.key -n g-404
-kubectl create secret generic cross-cluster-ca \
-  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
-
-# 3) g-404 (cluster-mining): trp-tls = cert de CLIENTE que el TrP presenta; CA para verificar al gateway
-kubectl --kubeconfig=renzo.yaml create secret tls trp-tls \
-  --cert=iac/k8s/certs/out/trp.crt --key=iac/k8s/certs/out/trp.key -n g-404
-kubectl --kubeconfig=renzo.yaml create secret generic cross-cluster-ca \
-  --from-file=ca.crt=iac/k8s/certs/out/ca.crt -n g-404
-```
-
-El ingress-nginx de GKE verifica el cert de cliente del TrP contra `cross-cluster-ca`
-(annotations `auth-tls-*`). El `#1` (frontend público) usa HTTPS común, no mTLS.
-
-### Aplicar cluster propio (GKE)
-
-```bash
-kubectl apply -f iac/k8s/cluster-services/config/
-kubectl apply -f iac/k8s/cluster-services/infrastructure/
-kubectl apply -f iac/k8s/cluster-services/services/
-kubectl apply -f iac/k8s/cluster-services/network/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/infrastructure/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/config/
+kubectl --kubeconfig=renzo.yaml apply -f iac/k8s/cluster-mining/services/
 ```
 
 ### Aplicar cluster del profe (g-404)
