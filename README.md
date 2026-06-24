@@ -129,30 +129,49 @@ El creador del evento define sus reglas al momento de crearlo. Quedan grabadas e
 
 # **6\. Arquitectura de Microservicios**
 
-## **6.0 Diagrama de arquitectura propuesta**
+## **6.0 Arquitectura de dos clusters**
 
-![](docs/arquitectura.png)
+El sistema corre en **dos clusters GKE separados**:
+
+| Cluster | Operado por | Contenido |
+| ----- | ----- | ----- |
+| `cluster-services` | Grupo 404 (GKE propio) | Frontend, Nginx, auth/events/tx/access/status APIs, NCT, Mining Gateway, Redis, RabbitMQ, PostgreSQL, MinIO |
+| `cluster-mining` | Profe (g-404) | Transaction Pool, Worker CPU, Worker GPU, RabbitMQ local |
+
+**Modelo PULL cross-cluster (mTLS):** el cluster del profe no expone ningún endpoint público. El TrP hace solo llamadas salientes al Mining Gateway en GKE: `GET /next-task` para recibir tareas y `POST /result` para devolver el bloque encontrado. El Mining Gateway autentica al TrP mediante mTLS (cert de cliente firmado por CA propia verificado por ingress-nginx).
+
+```
+NCT → exchange:mining (task.global) → Mining Gateway ← GET /next-task ← TrP → workers
+                                       Mining Gateway ← POST /result   ← TrP
+Mining Gateway → exchange:nct_results → NCT
+```
+
+![Arquitectura TicketChain](docs/arquitectura.png)
+
+Ver [`docs/comandos.md`](docs/comandos.md) para los comandos de despliegue.
 
 ## **6.1 Servicios definidos por el TP (Pilar 2\)**
 
-| Servicio | Responsabilidad |
-| ----- | ----- |
-| NCT — Nodo Coordinador | Valida transacciones, forma bloques, publica tareas en RabbitMQ |
-| Transaction Pool (TrP) | Fragmenta rangos de nonce entre workers, gestiona keepalives |
-| Worker GPU | Minero CUDA en C/C++ — resuelve PoW con aceleración GPU |
-| Worker CPU | Fallback en Python — se instancia automáticamente si no hay GPU |
+| Servicio | Tecnología | Responsabilidad |
+| ----- | ----- | ----- |
+| NCT — Nodo Coordinador | Python + FastAPI | Consume txs de RabbitMQ, acumula, forma bloques candidatos, publica tarea de minado y persiste el bloque confirmado en Redis |
+| Mining Gateway | Python + FastAPI | Borde entre clusters: expone `GET /next-task` y `POST /result` (HTTPS + mTLS). El TrP hace PULL sobre este endpoint; ningún RabbitMQ queda expuesto |
+| Transaction Pool (TrP) | Python + FastAPI | Hace PULL al mining-gateway, fragmenta el espacio de nonces y publica rangos a los workers del RabbitMQ local. Gestiona keepalives y redistribuye fragmentos caídos |
+| Worker GPU | C/C++ + CUDA | Minero GPU — resuelve PoW con aceleración CUDA (Pilar 1) |
+| Worker CPU | Python | Fallback CPU — misma interfaz que el GPU, se levanta automáticamente si no hay GPU disponible |
 
  
 
 ## **6.2 Servicios adicionales de la plataforma**
 
-| Servicio | Responsabilidad |
-| ----- | ----- |
-| API Gateway | Punto de entrada único, autenticación por API key, rate limiting |
-| Event Registry | CRUD de creadores y eventos, genera el bloque génesis |
-| Transaction API | Recibe compras y reventas, las encola para el NCT |
-| Access Control API | Valida una entrada en la puerta (consulta Redis, retorna propietario actual) |
-| Status API | Health check de todos los servicios en formato JSON (requerido por el TP) |
+| Servicio | Tecnología | Responsabilidad |
+| ----- | ----- | ----- |
+| Nginx | Nginx | Reverse proxy y punto de entrada único. Rutea `/api/auth/`, `/api/events/`, `/api/transactions/`, `/api/access/`, `/api/status/` y sirve imágenes de MinIO bajo `/images/` |
+| Auth Service | Node.js + Express | Registro/login con email+password, genera JWT con wallet_address derivado del user_id |
+| Event Registry | Node.js + Express | CRUD de eventos, carga de imágenes a MinIO, genera el bloque génesis al crear un evento |
+| Transaction API | Node.js + Express | Recibe compras y reventas, publica en RabbitMQ (`exchange:transactions`, routing `tx.new`) |
+| Access Control API | Node.js + Express | Valida una entrada en la puerta (consulta Redis `ticket:{event_id}:{ticket_id}:owner`) |
+| Status API | Node.js + Express | Health check de todos los servicios mediante pings HTTP (requerido por el TP) |
 
  
 
@@ -162,14 +181,17 @@ El creador del evento define sus reglas al momento de crearlo. Quedan grabadas e
 | ----- | ----- |
 | Minero GPU | C/C++ \+ CUDA (Hits \#2–\#7 del Pilar 1\) |
 | Minero CPU (fallback) | Python con hashlib — se levanta vía HPA si no hay GPU |
-| Microservicios | Python \+ FastAPI — desarrollo ágil, tipado opcional |
-| Cola de mensajes | RabbitMQ — exchange por evento (hybrid queue/topic) |
-| Base de datos / Blockchain | Redis con persistencia AOF — blockchain:{evento\_id} |
-| Orquestación | Kubernetes en GKE — HPA para escalar workers |
-| Infraestructura como código | OpenTofu — 4 pipelines de CI/CD en GitHub Actions |
-| Algoritmo de hash | MD5 en TP, SHA-256 en producción |
-| Mecanismo de consenso | Proof of Work (PoW) |
-| Observabilidad | Prometheus \+ Grafana — métricas de throughput y latencia |
+| Microservicios de usuario | Node.js \+ Express (auth, events, transactions, access-control, status) |
+| Core blockchain | Python \+ FastAPI (NCT, mining-gateway, transaction-pool, worker-cpu/gpu) |
+| Reverse proxy | Nginx — ruteo HTTP, terminación TLS, proxy a MinIO |
+| Cola de mensajes | RabbitMQ 3.12 — una instancia por cluster; exchanges `transactions`, `mining`, `nct_results` (cluster-services) y `mining_tasks`, `mining_results` (cluster-mining) |
+| Base de datos / Blockchain | Redis 7 con persistencia AOF — `blockchain:{event_id}`, `ticket:{event_id}:{ticket_id}:owner` |
+| Object Storage | MinIO — imágenes de eventos; accesible vía Nginx en `/images/` |
+| Base de datos relacional | PostgreSQL 16 — usuarios y sesiones |
+| Orquestación | Kubernetes en GKE — 2 clusters separados; HPA para escalar workers |
+| Seguridad cross-cluster | mTLS mutuo entre mining-gateway (GKE) y transaction-pool (cluster del profe). Verificado por ingress-nginx con cert de CA propia |
+| Algoritmo de hash | MD5 (PoW sobre el bloque) |
+| Mecanismo de consenso | Proof of Work (PoW) con dificultad configurable via `MINING_DIFFICULTY` |
 
  
 
