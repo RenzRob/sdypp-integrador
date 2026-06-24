@@ -1,0 +1,34 @@
+iac/k8s/cluster-services/network/ingress.yaml
+  s_8923533fcdec4a::t_454b5287afdafe 9,11-15,17
+  s_8923533fcdec4a::t_6503a90244a270 6
+  s_8923533fcdec4a::t_0cb08e2ea5a408 1-2
+iac/k8s/cluster-mining/services/worker-gpu-deployment.yaml
+  s_8923533fcdec4a::t_f9f8967798823e 8-9
+  s_8923533fcdec4a::t_a6a8d07dd4ead1 32-33
+iac/nginx/nginx.conf
+  s_8923533fcdec4a::t_3f5af3807d1336 9-10
+iac/k8s/cluster-services/infrastructure/postgres-deployment.yaml
+  s_8923533fcdec4a::t_25c042881c696d 46-49
+iac/k8s/cluster-services/network/cluster-issuer.yaml
+  s_8923533fcdec4a::t_5d4f368164b3b0 1-16
+iac/k8s/cluster-services/network/api-ingress.yaml
+  s_8923533fcdec4a::t_cf65d8116f7e50 1-38,40,42-44,46-56,58-60,62,64-66,68-78
+iac/k8s/cluster-mining/services/worker-cpu-deployment.yaml
+  s_8923533fcdec4a::t_09db9179406bff 29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "1bb6a62c11ac328c679e213646e274d7bae287e3",
+  "prompts": {},
+  "sessions": {
+    "s_8923533fcdec4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dd0e1f59-84a5-4d02-8bb6-9743bcc7435e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
