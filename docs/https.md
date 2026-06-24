@@ -200,6 +200,40 @@ iac/k8s/cluster-mining/services/transaction-pool-deployment.yaml   # monta /cert
 backend/transaction-pool/pool.py                                    # usa cert= y verify= en requests
 ```
 
+### Para qué casos nos protege el mTLS
+
+El endpoint del gateway (`https://gateway.34.61.108.95.nip.io`) es **público** — cualquier persona en internet puede hacer un request. mTLS cierra los vectores de ataque que HTTPS solo no cubre.
+
+---
+
+**Caso 1 — Alguien descubre la URL del gateway e intenta inyectar tareas falsas**
+
+Sin mTLS: un atacante hace `POST /result` con un bloque falso → el gateway lo publica en la cola `nct_results` → el NCT intenta validar el bloque (falla el hash, pero igual genera ruido y carga).
+
+Con mTLS: ingress-nginx rechaza la conexión antes de que llegue al pod porque el atacante no tiene un cert firmado por nuestra CA. Respuesta: `400`. No hay nada que hacer desde afuera sin el `trp.crt` + `trp.key`.
+
+---
+
+**Caso 2 — Alguien intercepta el tráfico entre clusters (man-in-the-middle)**
+
+Sin TLS: el contenido de las tareas de minado y los bloques confirmados viajaría en texto plano por internet.
+
+Con TLS pero sin verificar el servidor: un atacante podría poner un proxy entre el TrP y el gateway, interceptar los datos y hacer pasar su propio servidor como si fuera el gateway legítimo.
+
+Con mTLS: el TrP verifica que el cert del gateway fue firmado por nuestra CA (el `ca.crt` que tiene montado en `/ca/`). Si alguien se interpone con un cert distinto, la conexión se corta del lado del TrP antes de enviar nada. Nadie puede hacerse pasar por el gateway sin tener `gateway.key`, que nunca sale del cluster.
+
+---
+
+**Caso 3 — Otro servicio del cluster del profe intenta llamar al gateway**
+
+El cluster g-404 es compartido (otros grupos de la materia tienen sus propios namespaces). Sin mTLS, cualquier pod del cluster podría llamar al gateway de nuestro grupo. Con mTLS, solo el pod del TrP puede hacerlo porque es el único que tiene montado el `trp-tls` Secret con el cert firmado por nuestra CA.
+
+---
+
+**Lo que mTLS NO hace:**
+
+No reemplaza la lógica de validación del NCT. Si el TrP enviara un bloque con un nonce incorrecto, el mTLS lo dejaría pasar igual — la verificación criptográfica del bloque (que el hash empiece con los ceros de dificultad) la hace el NCT por separado. mTLS solo controla **quién puede hablar**, no **qué dice**.
+
 ---
 
 ## Resumen comparativo
