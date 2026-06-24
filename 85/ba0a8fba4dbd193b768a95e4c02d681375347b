@@ -1,0 +1,21 @@
+docs/infraestructure.md
+  s_7579fd34e83977::t_6c78a138f46e35 3,7,10,12-21,24-37,40-42,45,51-53,62,64-67,69,71,73-78,80,83-84
+tp-laboratorio/FLUJOS.md
+  s_7579fd34e83977::t_0d1006ed48a64e 9-24,28,31,33,35-36,39-41,43,48,50,54-61,65-66,70,74-75,77-83,85-87,91,93,95,98-104,108-112,116-122,126-128,131-135,139-140,142,144,147,150-154,158,161-162,164-210
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "85ba0a8fba4dbd193b768a95e4c02d681375347b",
+  "prompts": {},
+  "sessions": {
+    "s_7579fd34e83977": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35d8ab9a-7a7b-4057-91cb-7bb8551867b5",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
