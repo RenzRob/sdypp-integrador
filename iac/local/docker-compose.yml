@@ -152,17 +152,30 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  transaction-pool:
+  mining-gateway:
     build:
-      context: ../../backend/transaction-pool
+      context: ../../backend/mining-gateway
     env_file: .env
     networks:
       - ticketchain-net
     depends_on:
-      redis:
-        condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  transaction-pool:
+    build:
+      context: ../../backend/transaction-pool
+    env_file: .env
+    environment:
+      # Local: HTTP plano contra el gateway (mTLS es solo cross-cluster)
+      - GATEWAY_URL=http://mining-gateway:8000
+    networks:
+      - ticketchain-net
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mining-gateway:
+        condition: service_started
 
   worker-cpu:
     build:

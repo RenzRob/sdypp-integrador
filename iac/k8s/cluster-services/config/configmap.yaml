@@ -12,7 +12,7 @@ data:
   MINIO_PORT: "9000"
   MINIO_BUCKET: "ticketchain"
   # App
-  CORS_ORIGIN: "http://ticketchain.local"
+  CORS_ORIGIN: "https://ticketchain404.duckdns.org"
   MINING_DIFFICULTY: "3"
   NODE_ENV: "production"
   # Modelo PULL: el gateway no llama al TrP (el TrP hace polling). No hace falta TRP_URL.

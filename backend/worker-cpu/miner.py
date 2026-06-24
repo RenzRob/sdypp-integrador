@@ -3,10 +3,11 @@ import json
 import time
 
 
-def compute_hash(block_data: dict) -> str:
-    block_copy = dict(block_data)
-    block_string = json.dumps(block_copy, sort_keys=True)
-    return hashlib.sha256(block_string.encode()).hexdigest()
+def _block_data(block_candidate: dict) -> str:
+    """Serialización canónica del bloque SIN nonce — idéntica a la del worker GPU
+    (CUDA) y a la que valida el NCT. Sobre esto se calcula MD5(data + nonce)."""
+    block_copy = {k: v for k, v in block_candidate.items() if k != "nonce"}
+    return json.dumps(block_copy, sort_keys=True)
 
 
 def mine_range(
@@ -17,12 +18,12 @@ def mine_range(
     keepalive_cb=None,
 ) -> dict:
     prefix = "0" * difficulty
+    data = _block_data(block_candidate)
     last_keepalive = time.time()
-    block = dict(block_candidate)
 
     for nonce in range(nonce_start, nonce_end):
-        block["nonce"] = nonce
-        h = compute_hash(block)
+        # MD5(data + nonce): mismo esquema que el minero GPU (Pilar 1) y el NCT.
+        h = hashlib.md5((data + str(nonce)).encode()).hexdigest()
 
         if time.time() - last_keepalive > 5:
             if keepalive_cb:

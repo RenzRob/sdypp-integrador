@@ -43,6 +43,13 @@ CLIENT_KEY = os.environ.get("CLIENT_KEY_PATH", "/certs/tls.key")
 CA_CERT = os.environ.get("CA_CERT_PATH", "/ca/ca.crt")
 
 
+def _mtls_kwargs() -> dict:
+    """Args de mTLS solo si el gateway es HTTPS (en docker-compose local es HTTP plano)."""
+    if GATEWAY_URL.startswith("https"):
+        return {"cert": (CLIENT_CERT, CLIENT_KEY), "verify": CA_CERT}
+    return {}
+
+
 class TransactionPool:
     def __init__(self):
         # Estado en memoria, protegido por lock.
@@ -146,9 +153,8 @@ class TransactionPool:
                 resp = requests.post(
                     f"{GATEWAY_URL}/result",
                     json=nct_result,
-                    cert=(CLIENT_CERT, CLIENT_KEY),
-                    verify=CA_CERT,
                     timeout=HTTP_TIMEOUT,
+                    **_mtls_kwargs(),
                 )
                 if resp.status_code in (200, 202):
                     return True
@@ -302,9 +308,8 @@ class TransactionPool:
             try:
                 resp = requests.get(
                     f"{GATEWAY_URL}/next-task",
-                    cert=(CLIENT_CERT, CLIENT_KEY),
-                    verify=CA_CERT,
                     timeout=POLL_TIMEOUT,
+                    **_mtls_kwargs(),
                 )
                 if resp.status_code == 200:
                     self.submit_task(resp.json())

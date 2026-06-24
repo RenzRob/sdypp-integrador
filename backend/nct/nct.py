@@ -10,7 +10,7 @@ from collections import Counter
 import pika
 import redis
 
-from blockchain import compute_hash, verify_block
+from blockchain import verify_block
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [NCT] %(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
