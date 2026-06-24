@@ -14,11 +14,55 @@ Hay dos capas de HTTPS con mecanismos distintos según quién se comunica con qu
 Los browsers rechazan certificados self-signed. Let's Encrypt emite certs confiables gratis.
 cert-manager los renueva solos (antes de que venzan). El usuario no ve ninguna advertencia.
 
+### Cómo funciona el HTTP-01 challenge (teoría)
+
+Let's Encrypt necesita verificar que quien pide el cert **realmente controla el dominio**.
+El mecanismo HTTP-01 lo hace así:
+
+```
+cert-manager                Let's Encrypt             Browser del usuario
+     │                           │
+     │── "quiero cert para       │
+     │    ticketchain404.        │
+     │    duckdns.org" ─────────►│
+     │                           │
+     │◄── "OK, primero probá     │
+     │     que controlás el      │
+     │     dominio: poné un      │
+     │     archivo en            │
+     │     http://<dominio>/     │
+     │     .well-known/acme-     │
+     │     challenge/<token>"    │
+     │                           │
+     │ (cert-manager crea un     │
+     │  Ingress temporario que   │
+     │  sirve ese archivo vía    │
+     │  ingress-nginx)           │
+     │                           │
+     │── "listo, ya está" ──────►│
+     │                           │
+     │            Let's Encrypt hace GET a
+     │            http://ticketchain404.duckdns.org/
+     │            .well-known/acme-challenge/<token>
+     │            Si responde con el valor correcto
+     │            → dominio verificado
+     │                           │
+     │◄── cert firmado ──────────│
+     │                           │
+     │ (cert-manager guarda      │
+     │  el cert en el Secret     │
+     │  ticketchain-tls)         │
+```
+
+**Por qué funciona:** si podés servir un archivo en `http://tudominio/.well-known/acme-challenge/X`, es porque controlás el servidor al que apunta ese dominio en DNS. Let's Encrypt solo verifica que el token que puso cert-manager en el Ingress sea el que ellos esperan.
+
+**Qué pasa sin DuckDNS:** si el dominio no apuntara a la IP real del ingress, Let's Encrypt no podría hacer el GET → el challenge falla → no emite el cert. Por eso el DNS tiene que estar configurado correctamente antes de aplicar el Ingress con la anotación `cert-manager.io/cluster-issuer`.
+
 ### Infraestructura involucrada
 - **DuckDNS** (`ticketchain404.duckdns.org` → `34.61.108.95`): DNS gratuito, sin registrar dominio propio
-- **ingress-nginx** en GKE: termina el TLS, expone puerto 443, fuerza redirect HTTP→HTTPS
-- **cert-manager** v1.20.2 + `ClusterIssuer` `letsencrypt-prod`: emite el cert via HTTP-01 challenge
-- **Secret** `ticketchain-tls` en namespace `g-404`: almacena el cert+key, lo rota cert-manager
+- **ingress-nginx** en GKE: termina el TLS, expone puerto 443, fuerza redirect HTTP→HTTPS, y sirve el endpoint del challenge durante la emisión
+- **cert-manager** v1.20.2 + `ClusterIssuer` `letsencrypt-prod`: orquesta el challenge, solicita el cert, lo almacena y lo renueva (cada ~60 días, antes de que venza)
+- **Secret** `ticketchain-tls` en namespace `g-404`: almacena el cert+key actual, lo rota cert-manager sin intervención manual
 
 ### Archivos relevantes
 ```
