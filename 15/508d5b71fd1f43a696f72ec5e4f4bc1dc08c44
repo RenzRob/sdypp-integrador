@@ -1,0 +1,43 @@
+iac/k8s/cluster-services/infrastructure/rabbitmq-deployment.yaml
+  s_8923533fcdec4a::t_1a0d7ac3d91753 9
+iac/k8s/cluster-services/config/configmap.yaml
+  s_8923533fcdec4a::t_08b2e684d65c2f 18
+iac/k8s/cluster-mining/services/transaction-pool-deployment.yaml
+  s_8923533fcdec4a::t_de0272445aa317 21,26,29
+iac/k8s/cluster-services/infrastructure/redis-deployment.yaml
+  s_8923533fcdec4a::t_17b9d7e4de4e91 9
+backend/transaction-pool/pool.py
+  s_8923533fcdec4a::t_62aae1aa8ffe21 36-38
+  s_8923533fcdec4a::t_232f6ac00efbad 291-318
+iac/k8s/cluster-services/services/mining-gateway-deployment.yaml
+  s_8923533fcdec4a::t_54320017bf63c7 26
+backend/mining-gateway/main.py
+  s_8923533fcdec4a::t_47144ac136527d 1,3-4,6-7,9-10,16,20,26,43,46-47,49-51,53-65,71,83,91-97
+iac/k8s/cluster-services/network/gateway-ingress.yaml
+  s_8923533fcdec4a::t_085bf9a41db5f7 22,25
+docs/comandos.md
+  s_8923533fcdec4a::t_0a251c0522d997 95-98,100-106,109-111,114,116,118,120,127
+  s_8923533fcdec4a::t_d8804c52570fe5 158,162,173
+backend/transaction-pool/main.py
+  s_8923533fcdec4a::t_53cc59568a102f 1,3-5,16-19
+iac/k8s/cluster-mining/config/configmap.yaml
+  s_8923533fcdec4a::t_4665fcd16fa17b 10-12
+iac/k8s/certs/gen-certs.sh
+  s_8923533fcdec4a::t_d90a29c0f1f11e 3,5-8,11,16-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "15508d5b71fd1f43a696f72ec5e4f4bc1dc08c44",
+  "prompts": {},
+  "sessions": {
+    "s_8923533fcdec4a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dd0e1f59-84a5-4d02-8bb6-9743bcc7435e",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
