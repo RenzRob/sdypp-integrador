@@ -131,7 +131,12 @@ jobs:
       - name: Apply services
         run: kubectl apply -f iac/k8s/cluster-services/services/
       - name: Apply network
-        run: kubectl apply -f iac/k8s/cluster-services/network/
+        run: |
+          # ClusterIssuer es cluster-scoped (requiere cluster-admin); ya existe y
+          # no cambia en cada deploy. Los ingresses sí se actualizan normalmente.
+          kubectl apply -f iac/k8s/cluster-services/network/ingress.yaml
+          kubectl apply -f iac/k8s/cluster-services/network/api-ingress.yaml
+          kubectl apply -f iac/k8s/cluster-services/network/gateway-ingress.yaml
       - name: Rollout restart (pull new images)
         run: |
           kubectl rollout restart deployment \
