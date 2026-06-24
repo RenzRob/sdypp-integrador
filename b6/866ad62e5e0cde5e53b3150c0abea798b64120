@@ -1,0 +1,39 @@
+iac/k8s/cluster-services/network/api-ingress.yaml
+  s_a9a5601ce44706::t_47f70cc4c3effe 2
+docs/comandos.md
+  s_a9a5601ce44706::t_142115ea415438 91,95,97,99
+  s_a9a5601ce44706::t_789b0577fd46d0 71
+  s_a9a5601ce44706::t_836ef87bcad445 101,115
+  s_a9a5601ce44706::t_40462807caee57 86,88,90,92-93,96,98,100,102-105,108,110-112,117-130,133,136,140,146,153,164-191
+  s_a9a5601ce44706::t_1b35268e1cd7e8 155
+iac/tofu/cluster-services/versions.tf
+  s_a9a5601ce44706::t_fbe6d531a39ddc 1-17
+iac/local/nginx/Dockerfile
+  s_a9a5601ce44706::t_a1fc3482a6167f 12
+iac/local/docker-compose.yml
+  s_a9a5601ce44706::t_770a6e3b63fb2a 181
+iac/tofu/cluster-services/variables.tf
+  s_a9a5601ce44706::t_fbe6d531a39ddc 1-17
+docs/infraestructure.md
+  s_a9a5601ce44706::t_0e7e4973846504 28-43
+iac/tofu/cluster-services/main.tf
+  s_a9a5601ce44706::t_fbe6d531a39ddc 1-96
+iac/tofu/cluster-services/outputs.tf
+  s_a9a5601ce44706::t_fbe6d531a39ddc 1-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "b6866ad62e5e0cde5e53b3150c0abea798b64120",
+  "prompts": {},
+  "sessions": {
+    "s_a9a5601ce44706": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "561c7206-2d06-47c5-b428-ebfa5058adb5",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
