@@ -5,6 +5,8 @@ metadata:
   namespace: g-404
 spec:
   replicas: 1
+  strategy:
+    type: Recreate   # 1 sola GPU: matar el pod viejo antes de crear el nuevo
   selector:
     matchLabels:
       app: worker-gpu
@@ -27,6 +29,6 @@ spec:
               memory: "512Mi"
               nvidia.com/gpu: "1"
             limits:
-              cpu: "2"
-              memory: "2Gi"
+              cpu: "1"
+              memory: "1Gi"
               nvidia.com/gpu: "1"

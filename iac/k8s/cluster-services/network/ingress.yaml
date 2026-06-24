@@ -1,22 +1,22 @@
+# Ingress público del frontend. TLS confiable emitido y renovado por
+# cert-manager (Let's Encrypt). El ruteo /api/* se hace en api-ingress.yaml.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ticketchain-ingress
+  name: ticketchain-frontend
   namespace: g-404
   annotations:
-    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
 spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - ticketchain404.duckdns.org
+      secretName: ticketchain-tls
   rules:
-    - host: ticketchain.local
+    - host: ticketchain404.duckdns.org
       http:
         paths:
-          - path: /api/
-            pathType: Prefix
-            backend:
-              service:
-                name: nginx-service
-                port:
-                  number: 80
           - path: /
             pathType: Prefix
             backend:

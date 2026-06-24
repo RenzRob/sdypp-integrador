@@ -1,0 +1,78 @@
+# Ruteo /api/* y /images/* directo del ingress-nginx a cada backend (sin nginx
+# interno). Replica el mapeo del antiguo iac/nginx/nginx.conf.
+# Van como Ingress separados porque cada grupo usa un rewrite-target distinto.
+---
+# auth | events | transactions | access  →  /api/X/* → <service>/X/*
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketchain-api
+  namespace: g-404
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$1/$3
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [ticketchain404.duckdns.org]
+      secretName: ticketchain-tls
+  rules:
+    - host: ticketchain404.duckdns.org
+      http:
+        paths:
+          - path: /api/(auth)(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: auth-service, port: { number: 3001 } } }
+          - path: /api/(events)(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: event-registry, port: { number: 3002 } } }
+          - path: /api/(transactions)(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: transaction-api, port: { number: 3003 } } }
+          - path: /api/(access)(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: access-control, port: { number: 3004 } } }
+---
+# status  →  /api/status/* → status-api/*  (sin prefijo)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketchain-api-status
+  namespace: g-404
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [ticketchain404.duckdns.org]
+      secretName: ticketchain-tls
+  rules:
+    - host: ticketchain404.duckdns.org
+      http:
+        paths:
+          - path: /api/status(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: status-api, port: { number: 3005 } } }
+---
+# images  →  /images/* → minio/ticketchain/*
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ticketchain-images
+  namespace: g-404
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /ticketchain/$2
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [ticketchain404.duckdns.org]
+      secretName: ticketchain-tls
+  rules:
+    - host: ticketchain404.duckdns.org
+      http:
+        paths:
+          - path: /images(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend: { service: { name: minio, port: { number: 9000 } } }

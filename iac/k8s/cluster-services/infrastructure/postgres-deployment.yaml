@@ -43,6 +43,10 @@ spec:
                   key: POSTGRES_PASSWORD
             - name: POSTGRES_DB
               value: ticketchain
+            # El disco de GKE trae lost+found en la raíz → initdb falla si usa
+            # el mount directo. Apuntamos PGDATA a un subdirectorio.
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
           volumeMounts:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data
