@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
+import { CheckCircle, XCircle, AlertTriangle, Loader2, ArrowLeft, Ticket } from 'lucide-react'
 
 export default function Scan() {
   const [searchParams] = useSearchParams()
-  const [status, setStatus] = useState('loading') // loading | granted | denied | error
+  const [status, setStatus] = useState('loading')
   const [result, setResult] = useState(null)
 
-  useEffect(() => {
-    document.title = 'Validación de entrada — TicketChain'
-  }, [])
+  useEffect(() => { document.title = 'Validación de entrada — TicketChain' }, [])
 
   useEffect(() => {
     const token = searchParams.get('token')
@@ -17,7 +16,6 @@ export default function Scan() {
       setResult({ message: 'No se encontró token en el QR.' })
       return
     }
-
     fetch('/api/access/scan', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -34,87 +32,82 @@ export default function Scan() {
       })
   }, [searchParams])
 
+  const statusConfig = {
+    loading: {
+      icon: <Loader2 className="w-16 h-16 text-[#6c63ff] animate-spin" />,
+      title: 'Validando entrada…',
+      titleClass: 'text-[#a1a1aa]',
+    },
+    granted: {
+      icon: <CheckCircle className="w-16 h-16 text-success" />,
+      title: 'Acceso concedido',
+      titleClass: 'text-success',
+    },
+    denied: {
+      icon: <XCircle className="w-16 h-16 text-error" />,
+      title: 'Acceso denegado',
+      titleClass: 'text-error',
+    },
+    error: {
+      icon: <AlertTriangle className="w-16 h-16 text-warning" />,
+      title: 'Error',
+      titleClass: 'text-warning',
+    },
+  }
+
+  const cfg = statusConfig[status]
+
   return (
-    <main style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'var(--background)',
-      padding: '1.5rem',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '400px',
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius)',
-        padding: '2rem',
-        textAlign: 'center',
-      }}>
+    <main className="flex-1 flex items-center justify-center px-6 py-12 bg-[#070708]">
+      <div className="w-full max-w-[400px] animate-slideUp">
+        <div className="rounded-2xl border border-white/[0.08] bg-[#121214] p-8 text-center shadow-xl">
+          <div className="flex flex-col items-center mb-6">
+            <div className="mb-4">
+              {cfg.icon}
+            </div>
+            <h2 className={`text-xl font-bold m-0 ${cfg.titleClass}`}>{cfg.title}</h2>
+          </div>
 
-        {status === 'loading' && (
-          <>
-            <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Validando entrada…</p>
-          </>
-        )}
+          {status === 'granted' && (
+            <div className="space-y-2">
+              {result?.event_name && <p className="text-sm font-medium text-[#f4f4f5]">{result.event_name}</p>}
+              {result?.ticket_id && <p className="text-xs text-[#a1a1aa] font-mono">Ticket #{result.ticket_id}</p>}
+              {result?.wallet && <p className="text-[10px] text-[#71717a] font-mono break-all bg-white/[0.02] p-3 rounded-lg border border-white/[0.06]">{result.wallet}</p>}
+              {result?.checked_in_at && (
+                <p className="text-xs text-[#71717a] flex items-center justify-center gap-1 mt-2">
+                  Ingresó a las {new Date(result.checked_in_at).toLocaleTimeString('es-AR')}
+                </p>
+              )}
+            </div>
+          )}
 
-        {status === 'granted' && (
-          <>
-            <div style={{ fontSize: '4rem', lineHeight: 1, marginBottom: '1rem' }}>✅</div>
-            <h2 style={{ color: '#22c55e', margin: '0 0 0.5rem' }}>Acceso concedido</h2>
-            {result?.event_name && (
-              <p style={{ margin: '0 0 0.25rem', fontWeight: 600 }}>{result.event_name}</p>
-            )}
-            {result?.ticket_id && (
-              <p style={{ margin: '0 0 0.25rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Ticket #{result.ticket_id}
-              </p>
-            )}
-            {result?.wallet && (
-              <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.82rem', wordBreak: 'break-all' }}>
-                {result.wallet}
-              </p>
-            )}
-            {result?.checked_in_at && (
-              <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                Ingresó a las {new Date(result.checked_in_at).toLocaleTimeString('es-AR')}
-              </p>
-            )}
-          </>
-        )}
+          {status === 'denied' && (
+            <div className="space-y-2">
+              <p className="text-sm text-[#a1a1aa]">{result?.message || 'QR inválido'}</p>
+              {result?.checked_in_at && (
+                <p className="text-xs text-[#71717a]">
+                  Ya ingresó a las {new Date(result.checked_in_at).toLocaleTimeString('es-AR')}
+                </p>
+              )}
+            </div>
+          )}
 
-        {status === 'denied' && (
-          <>
-            <div style={{ fontSize: '4rem', lineHeight: 1, marginBottom: '1rem' }}>❌</div>
-            <h2 style={{ color: '#ef4444', margin: '0 0 0.75rem' }}>Acceso denegado</h2>
-            <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              {result?.message || 'QR inválido'}
-            </p>
-            {result?.checked_in_at && (
-              <p style={{ margin: '0 0 1.25rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                Ya ingresó a las {new Date(result.checked_in_at).toLocaleTimeString('es-AR')}
-              </p>
-            )}
-          </>
-        )}
+          {status === 'error' && (
+            <p className="text-sm text-[#a1a1aa]">{result?.message}</p>
+          )}
 
-        {status === 'error' && (
-          <>
-            <div style={{ fontSize: '4rem', lineHeight: 1, marginBottom: '1rem' }}>⚠️</div>
-            <h2 style={{ margin: '0 0 0.75rem' }}>Error</h2>
-            <p style={{ margin: '0 0 1.25rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-              {result?.message}
-            </p>
-          </>
-        )}
+          {status === 'loading' && (
+            <p className="text-sm text-[#71717a]">Verificando el token del QR…</p>
+          )}
 
-        {status !== 'loading' && (
-          <Link to="/" className="btn btn-secondary btn-sm">
-            Volver al inicio
-          </Link>
-        )}
+          {status !== 'loading' && (
+            <div className="mt-6 pt-5 border-t border-white/[0.06]">
+              <Link to="/" className="btn btn-ghost btn-sm">
+                <ArrowLeft className="w-4 h-4" /> Volver al inicio
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </main>
   )

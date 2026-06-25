@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "ticketchain-frontend",
   "version": "1.0.0",
   "scripts": {
@@ -7,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "lucide-react": "^1.21.0",
     "qrcode": "^1.5.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -14,6 +16,9 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.15",
+    "tailwindcss": "^3.4.19",
     "vite": "^5.0.0"
   }
 }

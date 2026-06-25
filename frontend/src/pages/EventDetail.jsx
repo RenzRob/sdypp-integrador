@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import BlockchainViewer from '../components/BlockchainViewer.jsx'
+import { ArrowLeft, Edit, Calendar, MapPin, DollarSign, Ticket, ShoppingCart, Repeat, Ban, CheckCircle, AlertCircle, ArrowUpRight, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
 
 function formatDate(dateStr) {
   if (!dateStr) return 'Fecha por confirmar'
@@ -40,27 +41,34 @@ export default function EventDetail() {
   const [listings, setListings] = useState([])
   const [buyingListed, setBuyingListed] = useState(null)
   const [activeTab, setActiveTab] = useState('oficial')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const location = useLocation()
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    if (params.get('success') === 'true') {
+      const tid = params.get('ticket_id')
+      setBuyMessage(`¡Pago aprobado! Entrada ${tid} — confirmación pendiente en blockchain.`)
+      window.history.replaceState({}, '', `/events/${id}`)
+    } else if (params.get('error')) {
+      setBuyError(`Error en el pago: ${params.get('error')}`)
+      window.history.replaceState({}, '', `/events/${id}`)
+    }
+  }, [location, id])
 
   useEffect(() => {
     document.title = event ? `${event.name} — TicketChain` : 'Evento — TicketChain'
   }, [event])
 
   const fetchEvent = useCallback(async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       const res = await fetch(`/api/events/${id}`)
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error || data.detail || data.message || `Error ${res.status}`)
-      }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || d.detail || d.message || `Error ${res.status}`) }
       const data = await res.json()
       setEvent(data)
-    } catch (err) {
-      setError(err.message || 'No se pudo cargar el evento')
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { setError(err.message || 'No se pudo cargar el evento') }
+    finally { setLoading(false) }
   }, [id])
 
   const fetchBlocks = useCallback(async () => {
@@ -68,11 +76,8 @@ export default function EventDetail() {
       const res = await fetch(`/api/events/${id}/blockchain`)
       if (!res.ok) return
       const data = await res.json()
-      const blockList = Array.isArray(data) ? data : (data.blocks || data.chain || [])
-      setBlocks(blockList)
-    } catch {
-      // blockchain puede no estar disponible todavía
-    }
+      setBlocks(Array.isArray(data) ? data : (data.blocks || data.chain || []))
+    } catch {}
   }, [id])
 
   const fetchListings = useCallback(async () => {
@@ -81,91 +86,55 @@ export default function EventDetail() {
       if (!res.ok) return
       const data = await res.json()
       setListings(Array.isArray(data) ? data : [])
-    } catch {
-      // listings no crítico
-    }
+    } catch {}
   }, [id])
 
-  useEffect(() => {
-    fetchEvent()
-    fetchBlocks()
-    fetchListings()
-  }, [fetchEvent, fetchBlocks, fetchListings])
+  useEffect(() => { fetchEvent(); fetchBlocks(); fetchListings() }, [fetchEvent, fetchBlocks, fetchListings])
 
   const handleBuy = async () => {
-    if (!user) {
-      navigate('/login')
-      return
-    }
-
-    setBuying(true)
-    setBuyMessage('')
-    setBuyError('')
-
+    if (!user) { navigate('/login'); return }
+    setBuying(true); setBuyMessage(''); setBuyError('')
     try {
       const res = await authFetch('/api/transactions/buy', {
-        method: 'POST',
-        body: JSON.stringify({ event_id: event.id }),
+        method: 'POST', body: JSON.stringify({ event_id: event.id }),
       })
-
       const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        throw new Error(data.error || data.detail || data.message || `Error ${res.status}`)
-      }
-
+      if (!res.ok) throw new Error(data.error || data.detail || data.message || `Error ${res.status}`)
+      if (data.init_point) { window.location.href = data.init_point; return }
       setBuyMessage(`Entrada asignada: ${data.ticket_id} — confirmación pendiente en blockchain.`)
-      fetchEvent()
-      fetchBlocks()
-      fetchListings()
-    } catch (err) {
-      setBuyError(err.message || 'No se pudo procesar la compra')
-    } finally {
-      setBuying(false)
-    }
+      fetchEvent(); fetchBlocks(); fetchListings()
+    } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
+    finally { setBuying(false) }
   }
 
   const handleBuyListed = async (listing) => {
     if (!user) { navigate('/login'); return }
-    setBuyingListed(listing.ticket_id)
-    setBuyMessage('')
-    setBuyError('')
+    setBuyingListed(listing.ticket_id); setBuyMessage(''); setBuyError('')
     try {
       const res = await authFetch('/api/transactions/buy-listed', {
-        method: 'POST',
-        body: JSON.stringify({ event_id: event.id, ticket_id: listing.ticket_id }),
+        method: 'POST', body: JSON.stringify({ event_id: event.id, ticket_id: listing.ticket_id }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || `Error ${res.status}`)
       setBuyMessage(`Entrada ${listing.ticket_id} comprada — confirmación pendiente en blockchain.`)
-      fetchEvent()
-      fetchBlocks()
-      fetchListings()
-    } catch (err) {
-      setBuyError(err.message || 'No se pudo procesar la compra')
-    } finally {
-      setBuyingListed(null)
-    }
+      fetchEvent(); fetchBlocks(); fetchListings()
+    } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
+    finally { setBuyingListed(null) }
   }
 
   if (loading) {
     return (
-      <main className="page">
-        <div className="loading-container">
-          <div className="loading-spinner" />
-          <span>Cargando evento…</span>
-        </div>
+      <main className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-[#a1a1aa]"><div className="spinner" /><span className="text-sm">Cargando evento…</span></div>
       </main>
     )
   }
 
   if (error) {
     return (
-      <main className="page">
-        <div className="alert alert-error">{error}</div>
-        <button className="btn btn-secondary" onClick={() => navigate('/events')}>
-          ← Volver a eventos
-        </button>
+      <main className="flex-1 max-w-[1280px] mx-auto px-6 py-8">
+        <div className="max-w-lg mx-auto p-4 rounded-xl bg-error/10 border border-error/20 text-error text-sm mb-4">{error}</div>
+        <div className="flex justify-center"><button className="btn btn-ghost" onClick={() => navigate('/events')}><ArrowLeft className="w-4 h-4" /> Volver</button></div>
       </main>
     )
   }
@@ -177,262 +146,190 @@ export default function EventDetail() {
   const total = event.total_tickets ?? 0
   const rules = event.rules || {}
   const isCreator = isAdmin && event.creator_id === user?.id
+  const priceDiff = (lp) => event.price ? ((lp - event.price) / event.price) * 100 : null
 
-  const priceDiff = (listingPrice) => {
-    if (!event.price) return null
-    const diff = ((listingPrice - event.price) / event.price) * 100
-    return diff
-  }
-
-  const tabBtn = (tab, label) => ({
-    padding: '0.65rem 1.25rem',
-    background: 'none',
-    border: 'none',
-    borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
-    marginBottom: '-2px',
-    color: activeTab === tab ? 'var(--accent)' : 'var(--text-muted)',
-    fontWeight: activeTab === tab ? '600' : '400',
-    cursor: 'pointer',
-    fontSize: '0.95rem',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.4rem',
-  })
+  const TabButton = ({ tab, label, icon, count }) => (
+    <button
+      onClick={() => setActiveTab(tab)}
+      className={`flex items-center gap-2 px-5 py-3 text-sm font-medium transition-all duration-200 border-b-2 -mb-[2px] ${
+        activeTab === tab
+          ? 'text-[#6c63ff] border-[#6c63ff]'
+          : 'text-[#71717a] border-transparent hover:text-[#a1a1aa]'
+      }`}
+    >
+      {icon}{label}
+      {count > 0 && <span className="px-1.5 py-0.5 rounded-full bg-[#6c63ff] text-white text-[10px] font-bold">{count}</span>}
+    </button>
+  )
 
   return (
-    <div style={{
-      width: '100%',
-      height: 'calc(100vh - 60px)',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      boxSizing: 'border-box',
-    }}>
+    <main className="flex-1 overflow-y-auto">
+      <div className="max-w-[1280px] mx-auto px-6 py-6">
+        {/* toggle button for mobile */}
+        <button
+          className="fixed bottom-6 right-6 z-40 w-11 h-11 rounded-xl bg-[#6c63ff] shadow-[0_0_20px_rgba(108,99,255,0.3)] flex items-center justify-center text-white md:hidden"
+          onClick={() => setSidebarOpen(o => !o)}
+        >
+          <PanelRightOpen className="w-5 h-5" />
+        </button>
 
-      {/* ── HEADER (full width, sin scroll) ── */}
-      <div style={{ flexShrink: 0, padding: '1.25rem 1.5rem 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/events')}>
-            ← Volver a eventos
-          </button>
-          {isCreator && (
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/admin/events/${event.id}/edit`)}>
-              Editar evento
-            </button>
-          )}
-        </div>
-
-        {suspended && (
-          <div className="alert alert-warning" style={{ marginBottom: '0.75rem' }}>
-            Este evento está suspendido. No se pueden comprar ni transferir entradas.
-          </div>
-        )}
-
-        <h1 style={{ fontSize: '1.75rem', marginBottom: '0.4rem' }}>{event.name}</h1>
-        <div className="event-detail-meta" style={{ marginBottom: '0.75rem' }}>
-          <span>📅 {formatDate(event.date)}</span>
-          <span>📍 {event.venue}</span>
-          <span>💰 {formatCurrency(event.price)}</span>
-          <span>🎟 {available.toLocaleString('es-AR')} / {total.toLocaleString('es-AR')} disponibles</span>
-        </div>
-        {event.description && (
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '0.75rem' }}>
-            {event.description}
-          </p>
-        )}
-
-        <div className="event-rules" style={{ marginBottom: '0.75rem' }}>
-          <h3>Reglas del evento</h3>
-          <div className="rules-grid">
-            <div className="rule-item">
-              <span className="rule-label">Precio máx. reventa</span>
-              <span className="rule-value">{rules.precio_max ? `+${rules.precio_max}% del original` : '—'}</span>
+        <div className={`grid grid-cols-1 ${sidebarOpen ? 'lg:grid-cols-[1fr_320px]' : ''} gap-6`}>
+          {/* ── LEFT COLUMN ── */}
+          <div>
+            {/* back + edit */}
+            <div className="flex items-center justify-between mb-4">
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/events')}><ArrowLeft className="w-4 h-4" /> Volver</button>
+              <div className="flex items-center gap-2">
+                {isCreator && <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/admin/events/${event.id}/edit`)}><Edit className="w-4 h-4" /> Editar</button>}
+                <button
+                  className="hidden lg:flex btn btn-ghost btn-sm"
+                  onClick={() => setSidebarOpen(o => !o)}
+                  title={sidebarOpen ? 'Ocultar blockchain' : 'Mostrar blockchain'}
+                >
+                  {sidebarOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRightOpen className="w-4 h-4" />}
+                  <span className="hidden xl:inline ml-1">{sidebarOpen ? 'Ocultar blockchain' : 'Blockchain'}</span>
+                </button>
+              </div>
             </div>
-            <div className="rule-item">
-              <span className="rule-label">Máx. reventas</span>
-              <span className="rule-value">{rules.max_reventas != null ? rules.max_reventas : '—'}</span>
+
+            {suspended && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-warning/10 border border-warning/20 text-warning text-sm mb-4">
+                <Ban className="w-4 h-4 flex-shrink-0" />Este evento está suspendido.
+              </div>
+            )}
+
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">{event.name}</h1>
+
+            <div className="flex flex-wrap items-center gap-4 text-sm text-[#a1a1aa] mb-4">
+              <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-[#71717a]" />{formatDate(event.date)}</span>
+              <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#71717a]" />{event.venue}</span>
+              <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-[#71717a]" />{formatCurrency(event.price)}</span>
             </div>
-            <div className="rule-item">
-              <span className="rule-label">Entrada nominada</span>
-              <span className="rule-value">{rules.nominada === true ? 'Sí' : rules.nominada === false ? 'No' : '—'}</span>
+
+            {event.description && <p className="text-sm text-[#71717a] mb-4">{event.description}</p>}
+
+            {/* STATS BAR */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] mb-4">
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-[#71717a]">Disponibles</div>
+                <div className="text-lg font-bold text-[#f4f4f5]">{available.toLocaleString('es-AR')} <span className="text-sm font-normal text-[#71717a]">/ {total.toLocaleString('es-AR')}</span></div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-[#71717a]">Precio reventa</div>
+                <div className="text-sm font-semibold text-[#f4f4f5]">{rules.precio_max ? `+${rules.precio_max}% máx` : '—'}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-[#71717a]">Reventas</div>
+                <div className="text-sm font-semibold text-[#f4f4f5]">{rules.max_reventas != null ? `${rules.max_reventas} máx` : '—'}</div>
+              </div>
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-[#71717a]">Nominada</div>
+                <div className="text-sm font-semibold text-[#f4f4f5]">{rules.nominada === true ? 'Sí' : 'No'}</div>
+              </div>
             </div>
-            <div className="rule-item">
-              <span className="rule-label">Ventana de venta</span>
-              <span className="rule-value">{rules.ventana_venta ? `${rules.ventana_venta}h antes` : '—'}</span>
-            </div>
-          </div>
-        </div>
 
-        {buyMessage && <div className="alert alert-success" style={{ marginBottom: '0.5rem' }}>{buyMessage}</div>}
-        {buyError   && <div className="alert alert-error"   style={{ marginBottom: '0.5rem' }}>{buyError}</div>}
-      </div>
+            {buyMessage && <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm mb-4"><CheckCircle className="w-4 h-4 flex-shrink-0" />{buyMessage}</div>}
+            {buyError && <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm mb-4"><AlertCircle className="w-4 h-4 flex-shrink-0" />{buyError}</div>}
 
-      {/* ── SPLIT (2 columnas con scroll independiente) ── */}
-      <div style={{
-        flex: 1,
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1rem',
-        overflow: 'hidden',
-        padding: '0.75rem 1.5rem 1.25rem',
-      }}>
+            {/* BUY / RESELL TABS */}
+            <div className="border border-white/[0.06] rounded-xl overflow-hidden">
+              <div className="flex items-center border-b border-white/[0.06] bg-white/[0.01]">
+                <TabButton tab="oficial" label="Compra oficial" icon={<ShoppingCart className="w-4 h-4" />} />
+                <TabButton tab="reventa" label="Mercado secundario" icon={<Repeat className="w-4 h-4" />} count={listings.length} />
+              </div>
 
-        {/* Panel izquierdo: compra oficial + mercado secundario */}
-        <div style={{
-          overflowY: 'auto',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
-          {/* Tabs */}
-          <div style={{
-            display: 'flex',
-            borderBottom: '2px solid var(--border)',
-            padding: '0 1rem',
-            flexShrink: 0,
-          }}>
-            <button onClick={() => setActiveTab('oficial')} style={tabBtn('oficial')}>
-              🎟 Compra oficial
-            </button>
-            <button onClick={() => setActiveTab('reventa')} style={tabBtn('reventa')}>
-              🔄 Mercado secundario
-              {listings.length > 0 && (
-                <span style={{
-                  background: 'var(--accent)', color: '#fff',
-                  borderRadius: '999px', fontSize: '0.7rem',
-                  fontWeight: '700', padding: '0.1rem 0.45rem', lineHeight: '1.4',
-                }}>
-                  {listings.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          <div style={{ padding: '1.25rem', flex: 1 }}>
-            {/* Tab: Compra oficial */}
-            {activeTab === 'oficial' && (
-              suspended ? (
-                <div className="empty-state"><p>El evento está suspendido.</p></div>
-              ) : available === 0 ? (
-                <div className="empty-state"><p>No quedan entradas disponibles en venta oficial.</p></div>
-              ) : !user ? (
-                <div className="notice"><a href="/login">Iniciá sesión</a> para comprar entradas.</div>
-              ) : isAdmin ? (
-                <div className="notice">Las cuentas de administrador no pueden comprar entradas.</div>
-              ) : (
-                <div style={{
-                  background: 'var(--card-bg)', border: '1px solid var(--border)',
-                  borderRadius: '12px', padding: '1.5rem',
-                  display: 'flex', alignItems: 'center',
-                  justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem',
-                }}>
-                  <div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>
-                      Precio oficial
+              <div className="p-6">
+                {activeTab === 'oficial' && (
+                  suspended ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><Ban className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento suspendido</p></div>
+                  ) : available === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><Ticket className="w-10 h-10 mb-3 text-white/[0.1]" /><p>No quedan entradas en venta oficial</p></div>
+                  ) : !user ? (
+                    <div className="flex flex-col items-center py-12"><div className="p-4 rounded-2xl bg-accent/10 border border-accent/20 text-sm text-[#a1a1aa]"><a href="/login" className="text-[#6c63ff] font-medium">Iniciá sesión</a> para comprar entradas</div></div>
+                  ) : isAdmin ? (
+                    <div className="flex flex-col items-center py-12"><div className="p-4 rounded-2xl bg-accent/10 border border-accent/20 text-sm text-[#a1a1aa]">Las cuentas de administrador no pueden comprar entradas</div></div>
+                  ) : (
+                    <div className="max-w-sm mx-auto w-full">
+                      <div className="rounded-2xl border border-white/[0.08] bg-[#121214] p-6 text-center">
+                        <div className="text-[10px] font-semibold uppercase tracking-widest text-[#71717a] mb-1">Precio oficial</div>
+                        <div className="text-4xl font-bold gradient-text mb-1">{formatCurrency(event.price)}</div>
+                        <div className="text-sm text-[#71717a] mb-5">{available.toLocaleString('es-AR')} entradas disponibles</div>
+                        <button className="btn btn-primary btn-lg w-full" onClick={handleBuy} disabled={buying}>
+                          {buying ? <><span className="spinner-sm" /> Procesando…</> : <><ShoppingCart className="w-5 h-5" /> Comprar entrada</>}
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '1.75rem', fontWeight: '700' }}>{formatCurrency(event.price)}</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                      {available.toLocaleString('es-AR')} entradas disponibles
+                  )
+                )}
+
+                {activeTab === 'reventa' && (
+                  suspended ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><Ban className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento suspendido</p></div>
+                  ) : rules.nominada ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><Repeat className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Reventa no permitida</p></div>
+                  ) : listings.length === 0 ? (
+                    <div className="flex flex-col items-center py-12 text-center text-[#71717a]">
+                      <Repeat className="w-10 h-10 mb-3 text-white/[0.1]" />
+                      <p className="mb-1">No hay entradas en reventa</p>
+                      <p className="text-xs">Publicá la tuya desde <a href="/my-tickets" className="text-[#6c63ff]">Mis entradas</a></p>
                     </div>
-                  </div>
-                  <button className="btn btn-primary" onClick={handleBuy} disabled={buying} style={{ minWidth: '160px' }}>
-                    {buying ? <><span className="loading-spinner loading-spinner-sm" />Procesando…</> : 'Compra oficial'}
+                  ) : (
+                    <div className="max-w-2xl mx-auto space-y-3">
+                      {listings.map(listing => {
+                        const isOwn = user?.wallet_address === listing.seller_wallet
+                        const diff = priceDiff(listing.price)
+                        const diffLabel = diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(0)}%` : null
+                        return (
+                          <div key={listing.ticket_id} className="rounded-2xl border border-white/[0.08] bg-[#121214] p-4 flex items-center justify-between gap-4 flex-wrap">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6c63ff]/20 to-[#8b5cf6]/20 flex items-center justify-center flex-shrink-0">
+                                <Ticket className="w-5 h-5 text-[#6c63ff]" />
+                              </div>
+                              <div>
+                                <div className="text-sm font-medium text-[#f4f4f5]">Entrada #{listing.ticket_id.slice(-6)}</div>
+                                <div className="text-[10px] font-mono text-[#71717a] mt-0.5">{listing.seller_wallet}</div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-[#f4f4f5]">{formatCurrency(listing.price)}</div>
+                                {diffLabel && <div className="text-[10px] font-semibold flex items-center gap-0.5 justify-end text-[#22c55e]"><ArrowUpRight className="w-3 h-3" />{diffLabel}</div>}
+                              </div>
+                              {!user ? <a href="/login" className="btn btn-secondary btn-sm">Ingresar</a>
+                              : isOwn ? <span className="text-[10px] text-[#71717a] bg-white/[0.04] rounded-lg px-3 py-1.5">Tu publicación</span>
+                              : isAdmin ? null
+                              : <button className="btn btn-primary btn-sm" disabled={buyingListed === listing.ticket_id} onClick={() => handleBuyListed(listing)}>
+                                  {buyingListed === listing.ticket_id ? 'Procesando…' : 'Comprar'}
+                                </button>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── RIGHT SIDEBAR ── */}
+          {sidebarOpen && (
+            <div className="lg:sticky lg:top-6 lg:self-start">
+              {/* mobile overlay */}
+              <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+              <div className="relative z-40 lg:z-auto bg-[#070708] lg:bg-transparent border-l-0 lg:border-l border-white/[0.06] pl-0 lg:pl-6 fixed lg:static inset-0 lg:inset-auto overflow-y-auto lg:overflow-visible pt-6 lg:pt-0">
+                <div className="flex items-center justify-between mb-4 lg:hidden">
+                  <span className="text-sm font-medium text-[#a1a1aa]">Blockchain</span>
+                  <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setSidebarOpen(false)}>
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
-              )
-            )}
-
-            {/* Tab: Mercado secundario */}
-            {activeTab === 'reventa' && (
-              suspended ? (
-                <div className="empty-state"><p>El evento está suspendido.</p></div>
-              ) : rules.nominada ? (
-                <div className="empty-state"><p>Este evento no permite reventa de entradas.</p></div>
-              ) : listings.length === 0 ? (
-                <div className="empty-state">
-                  <p style={{ marginBottom: '0.5rem' }}>No hay entradas en reventa por ahora.</p>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    Si tenés una entrada, podés publicarla desde <a href="/my-tickets">Mis entradas</a>.
-                  </p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {listings.map(listing => {
-                    const isOwn = user?.wallet_address === listing.seller_wallet
-                    const diff = priceDiff(listing.price)
-                    const diffLabel = diff != null ? `${diff > 0 ? '+' : ''}${diff.toFixed(0)}%` : null
-                    const diffColor = diff == null ? 'var(--text-muted)' : diff <= 0 ? '#22c55e' : diff <= 15 ? '#f59e0b' : '#ef4444'
-
-                    return (
-                      <div key={listing.ticket_id} style={{
-                        background: 'var(--card-bg)', border: '1px solid var(--border)',
-                        borderRadius: '12px', padding: '1rem 1.25rem',
-                        display: 'flex', alignItems: 'center',
-                        justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <div style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            background: 'var(--border)', display: 'flex',
-                            alignItems: 'center', justifyContent: 'center',
-                            fontSize: '1.1rem', flexShrink: 0,
-                          }}>🎫</div>
-                          <div>
-                            <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>
-                              Entrada #{listing.ticket_id.slice(-6)}
-                            </div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
-                              {listing.seller_wallet}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-                          <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '1.2rem', fontWeight: '700' }}>{formatCurrency(listing.price)}</div>
-                            {diffLabel && (
-                              <div style={{ fontSize: '0.75rem', color: diffColor, fontWeight: '600' }}>
-                                {diffLabel} vs oficial
-                              </div>
-                            )}
-                          </div>
-                          {!user ? (
-                            <a href="/login" className="btn btn-secondary btn-sm">Ingresar</a>
-                          ) : isOwn ? (
-                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', background: 'var(--border)', borderRadius: '6px', padding: '0.3rem 0.6rem' }}>
-                              Tu publicación
-                            </span>
-                          ) : isAdmin ? null : (
-                            <button
-                              className="btn btn-primary btn-sm"
-                              disabled={buyingListed === listing.ticket_id}
-                              onClick={() => handleBuyListed(listing)}
-                            >
-                              {buyingListed === listing.ticket_id ? 'Procesando…' : 'Comprar'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Panel derecho: blockchain completa */}
-        <div style={{
-          overflowY: 'auto',
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius)',
-          padding: '1.25rem',
-        }}>
-          <BlockchainViewer blocks={blocks} />
+                <BlockchainViewer blocks={blocks} />
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </main>
   )
 }

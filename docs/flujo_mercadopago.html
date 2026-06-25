@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagrama de Flujo: Integración Mercado Pago en TicketChain</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #009ee3; /* Color Mercado Pago */
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .mermaid-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 1000px;
+            overflow-x: auto;
+        }
+        .footer {
+            margin-top: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+            text-align: center;
+            max-width: 800px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Flujo de Integración: TicketChain + Mercado Pago</h1>
+    
+    <div class="mermaid-container">
+        <!-- Definición del diagrama usando Mermaid -->
+        <div class="mermaid">
+sequenceDiagram
+    autonumber
+    actor U as Usuario
+    participant F as Frontend (React)
+    participant B as Backend (Transacciones)
+    participant R as Redis (Caché)
+    participant MP as Mercado Pago
+    participant MQ as RabbitMQ
+    participant BC as Blockchain (Worker/Gateway)
+
+    U->>F: Clic en "Comprar Entrada"
+    F->>B: POST /buy (o /buy-listed)
+    
+    rect rgb(240, 248, 255)
+        Note over B,R: Bloqueo de concurrencia
+        B->>R: SETEX ticket:owner = 'pending_payment' (900s)
+        B->>R: SETEX pending_tx (900s)
+    end
+    
+    B->>MP: Crear Preferencia de Pago
+    MP-->>B: Devuelve init_point (URL)
+    B-->>F: Redirige a init_point
+    
+    F->>MP: Abre Checkout Pro
+    U->>MP: Ingresa Tarjeta y Paga
+    
+    rect rgb(230, 255, 230)
+        Note over MP,B: Flujo Asíncrono (Webhooks)
+        MP->>B: POST /api/transactions/mp/webhook (Firma x-signature)
+        B->>B: Valida firma (HMAC-SHA256)
+        B->>MP: GET /v1/payments/{id} (Double Check)
+        MP-->>B: status: "approved"
+    end
+    
+    B->>R: Borra pending_tx (Libera bloqueo temporal)
+    B->>R: Asigna ticket al comprador definitivamente
+    
+    B->>MQ: Envia mensaje de transacción (tx_id, buyer, seller)
+    B-->>MP: 200 OK (Confirma recepción del webhook)
+    
+    Note over MP,F: Paralelamente, MP redirige al usuario...
+    MP-->>F: Redirige a URL de Éxito (GET /mp/success)
+    F-->>U: Muestra "¡Pago Aprobado! Entrada Asignada"
+    
+    rect rgb(255, 245, 230)
+        Note over MQ,BC: Proceso de minado desacoplado
+        MQ->>BC: Consume cola de mensajes
+        BC->>BC: Mina el bloque en la red Ethereum
+    end
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>Explicación para el final:</strong> Este diagrama de secuencia demuestra cómo el sistema desacopla el pago fiat (síncrono/webhooks) del asiento en blockchain (asíncrono/colas), mientras utiliza Redis para evitar que dos usuarios compren la misma entrada al mismo tiempo (doble gasto).</p>
+    </div>
+
+    <!-- Script de inicialización de Mermaid -->
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+    </script>
+</body>
+</html>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import QRCode from 'qrcode'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
+import { Ticket, Wallet, Repeat, X, RefreshCw, Tag, CheckCircle, AlertCircle, ArrowRight, QrCode } from 'lucide-react'
 
 function formatCurrency(amount) {
   if (amount == null) return '-'
@@ -32,22 +34,25 @@ function ListModal({ ticket, onClose, onSubmit, loading }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <h2>Poner en venta</h2>
-        <p className="modal-subtitle">Ticket #{ticket.ticket_id} — {ticket.event_name}</p>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="animate-fadeIn w-full max-w-md p-6 rounded-2xl border border-white/[0.08] bg-[#121214] shadow-2xl">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6c63ff]/20 to-[#8b5cf6]/20 flex items-center justify-center">
+            <Tag className="w-5 h-5 text-[#6c63ff]" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Poner en venta</h2>
+            <p className="text-xs text-[#71717a]">Ticket #{ticket.ticket_id} — {ticket.event_name}</p>
+          </div>
+        </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {error && <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm mb-4"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="list-price">
+          <div className="flex flex-col gap-2 mb-5">
+            <label htmlFor="list-price" className="text-xs font-medium text-[#a1a1aa]">
               Precio de reventa
-              {maxPrice != null && (
-                <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                  {' '}(máx. {formatCurrency(maxPrice)})
-                </span>
-              )}
+              {maxPrice != null && <span className="font-normal text-[#71717a]"> (máx. {formatCurrency(maxPrice)})</span>}
             </label>
             <input
               id="list-price"
@@ -60,14 +65,15 @@ function ListModal({ ticket, onClose, onSubmit, loading }) {
               placeholder="Ej: 5000"
               autoFocus
               required
+              className="input"
             />
           </div>
-          <div className="modal-actions">
-            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={loading}>
-              Cancelar
+          <div className="flex gap-3 justify-end">
+            <button type="button" className="btn btn-ghost" onClick={onClose} disabled={loading}>
+              <X className="w-4 h-4" /> Cancelar
             </button>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? <><span className="loading-spinner loading-spinner-sm" /> Publicando…</> : 'Publicar'}
+              {loading ? <><span className="spinner-sm" /> Publicando…</> : <><CheckCircle className="w-4 h-4" /> Publicar</>}
             </button>
           </div>
         </form>
@@ -78,7 +84,8 @@ function ListModal({ ticket, onClose, onSubmit, loading }) {
 
 const QR_REFRESH_SECS = 30
 
-function QRPanel({ ticket, authFetch }) {
+function QRModal({ ticket, onClose }) {
+  const { authFetch } = useAuth()
   const [qrDataUrl, setQrDataUrl] = useState(null)
   const [secondsLeft, setSecondsLeft] = useState(QR_REFRESH_SECS)
   const [qrError, setQrError] = useState('')
@@ -93,7 +100,7 @@ function QRPanel({ ticket, authFetch }) {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || 'Error al obtener QR')
       const scanUrl = `${window.location.origin}/scan?token=${encodeURIComponent(data.token)}`
-      const url = await QRCode.toDataURL(scanUrl, { width: 220, margin: 2 })
+      const url = await QRCode.toDataURL(scanUrl, { width: 260, margin: 2 })
       setQrDataUrl(url)
       setSecondsLeft(QR_REFRESH_SECS)
     } catch (err) {
@@ -103,10 +110,7 @@ function QRPanel({ ticket, authFetch }) {
     }
   }, [ticket, authFetch])
 
-  useEffect(() => {
-    setQrDataUrl(null)
-    refresh()
-  }, [refresh])
+  useEffect(() => { setQrDataUrl(null); refresh() }, [refresh])
 
   useEffect(() => {
     if (!ticket) return
@@ -119,105 +123,74 @@ function QRPanel({ ticket, authFetch }) {
     return () => clearInterval(id)
   }, [ticket, refresh])
 
-  if (!ticket) {
-    return (
-      <div style={panelStyle}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', padding: '2rem' }}>
-          <span style={{ fontSize: '2.5rem' }}>🎫</span>
-          <p style={{ margin: 0 }}>Seleccioná una entrada para ver su QR de acceso</p>
-        </div>
-      </div>
-    )
-  }
-
   const urgent = secondsLeft <= 8
 
   return (
-    <div style={panelStyle}>
-      <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
-        <p style={{ margin: '0 0 0.15rem', fontWeight: 600, fontSize: '0.95rem' }}>{ticket.event_name}</p>
-        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>#{ticket.ticket_id}</p>
-      </div>
-
-      {qrError && <div className="alert alert-error" style={{ marginBottom: '0.75rem' }}>{qrError}</div>}
-
-      <div style={{ display: 'flex', justifyContent: 'center', minHeight: '220px', alignItems: 'center' }}>
-        {fetching && !qrDataUrl && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'var(--text-muted)' }}>
-            <span className="loading-spinner" />
-            <span style={{ fontSize: '0.82rem' }}>Generando QR…</span>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="animate-fadeIn w-full max-w-sm p-6 rounded-2xl border border-white/[0.08] bg-[#121214] shadow-2xl">
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <p className="text-sm font-medium text-[#f4f4f5]">{ticket.event_name}</p>
+            <p className="text-[10px] font-mono text-[#71717a] mt-0.5">#{ticket.ticket_id}</p>
           </div>
-        )}
-        {qrDataUrl && (
-          <img
-            src={qrDataUrl}
-            alt="QR de acceso"
-            style={{
-              display: 'block',
-              borderRadius: '10px',
-              border: '3px solid var(--border)',
-              opacity: fetching ? 0.35 : 1,
-              transition: 'opacity 0.25s',
-            }}
-          />
-        )}
-      </div>
-
-      {qrDataUrl && (
-        <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-          <div style={{ width: '180px', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
-            <div
-              style={{
-                height: '100%',
-                width: `${(secondsLeft / QR_REFRESH_SECS) * 100}%`,
-                background: urgent ? '#f59e0b' : 'var(--accent)',
-                transition: 'width 1s linear, background 0.3s',
-                borderRadius: '99px',
-              }}
-            />
-          </div>
-          <span style={{ fontSize: '0.78rem', color: urgent ? '#f59e0b' : 'var(--text-muted)' }}>
-            {fetching ? 'Renovando…' : `Renueva en ${secondsLeft}s`}
-          </span>
-          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-            El QR cambia cada {QR_REFRESH_SECS}s para evitar capturas de pantalla
-          </span>
+          <button className="btn btn-ghost btn-sm btn-icon" onClick={onClose}><X className="w-4 h-4" /></button>
         </div>
-      )}
 
-      {!fetching && (
-        <button
-          className="btn btn-secondary btn-sm"
-          onClick={refresh}
-          style={{ marginTop: '0.75rem', width: '100%' }}
-        >
-          Renovar ahora
-        </button>
-      )}
+        {qrError && <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-xs mb-4"><AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />{qrError}</div>}
+
+        <div className="flex justify-center items-center min-h-[260px]">
+          {fetching && !qrDataUrl && (
+            <div className="flex flex-col items-center gap-3 text-[#71717a]">
+              <div className="spinner" />
+              <span className="text-xs">Generando QR…</span>
+            </div>
+          )}
+          {qrDataUrl && (
+            <img
+              src={qrDataUrl}
+              alt="QR de acceso"
+              className={`rounded-xl border-2 border-white/[0.08] ${fetching ? 'opacity-30' : 'opacity-100'} transition-opacity duration-300`}
+            />
+          )}
+        </div>
+
+        {qrDataUrl && (
+          <div className="mt-5 flex flex-col items-center gap-2 w-full">
+            <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-1000"
+                style={{
+                  width: `${(secondsLeft / QR_REFRESH_SECS) * 100}%`,
+                  background: urgent ? 'linear-gradient(90deg, #f59e0b, #f97316)' : 'linear-gradient(90deg, #6c63ff, #8b5cf6)',
+                }}
+              />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <RefreshCw className={`w-3 h-3 ${urgent ? 'text-warning' : 'text-[#71717a]'} ${fetching ? 'animate-spin' : ''}`} />
+              <span className={`text-[11px] ${urgent ? 'text-warning' : 'text-[#71717a]'}`}>
+                {fetching ? 'Renovando…' : `Renueva en ${secondsLeft}s`}
+              </span>
+            </div>
+            {!fetching && (
+              <button className="btn btn-ghost btn-sm mt-1" onClick={refresh}>
+                <RefreshCw className="w-3.5 h-3.5" /> Renovar
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-const panelStyle = {
-  background: 'var(--surface)',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius)',
-  padding: '1.25rem',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  height: '100%',
-  boxSizing: 'border-box',
-  overflowY: 'auto',
-}
-
 export default function MyTickets() {
   const { authFetch } = useAuth()
+  const navigate = useNavigate()
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedTicket, setSelectedTicket] = useState(null)
   const [listTarget, setListTarget] = useState(null)
+  const [qrTarget, setQrTarget] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [actionError, setActionError] = useState('')
@@ -236,26 +209,15 @@ export default function MyTickets() {
       const data = await res.json()
       const list = Array.isArray(data) ? data : (data.tickets || [])
       setTickets(list)
-      setSelectedTicket(prev => {
-        if (prev) {
-          const updated = list.find(t => t.ticket_id === prev.ticket_id && t.event_id === prev.event_id)
-          return updated ?? (list[0] ?? null)
-        }
-        return list[0] ?? null
-      })
     } catch (err) {
       setError(err.message || 'No se pudieron cargar tus entradas')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }, [authFetch])
 
   useEffect(() => { fetchTickets() }, [fetchTickets])
 
   const handleList = async (price) => {
-    setActionLoading(true)
-    setMessage('')
-    setActionError('')
+    setActionLoading(true); setMessage(''); setActionError('')
     try {
       const res = await authFetch('/api/transactions/list', {
         method: 'POST',
@@ -264,32 +226,23 @@ export default function MyTickets() {
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
       setMessage(`Entrada ${listTarget.ticket_id} publicada a ${formatCurrency(price)}.`)
-      setListTarget(null)
-      fetchTickets()
+      setListTarget(null); fetchTickets()
     } catch (err) {
       setActionError(err.message || 'Error al publicar')
-    } finally {
-      setActionLoading(false)
-    }
+    } finally { setActionLoading(false) }
   }
 
   const handleUnlist = async (ticket) => {
-    setActionLoading(true)
-    setMessage('')
-    setActionError('')
+    setActionLoading(true); setMessage(''); setActionError('')
     try {
-      const res = await authFetch(`/api/transactions/list/${ticket.event_id}/${ticket.ticket_id}`, {
-        method: 'DELETE',
-      })
+      const res = await authFetch(`/api/transactions/list/${ticket.event_id}/${ticket.ticket_id}`, { method: 'DELETE' })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || `Error ${res.status}`)
       setMessage(`Publicación de ${ticket.ticket_id} cancelada.`)
       fetchTickets()
     } catch (err) {
       setActionError(err.message || 'Error al cancelar')
-    } finally {
-      setActionLoading(false)
-    }
+    } finally { setActionLoading(false) }
   }
 
   const canList = (ticket) => {
@@ -299,117 +252,102 @@ export default function MyTickets() {
     return true
   }
 
-  const isSelected = (ticket) =>
-    selectedTicket?.ticket_id === ticket.ticket_id && selectedTicket?.event_id === ticket.event_id
-
   return (
-    <main className="page">
-      <div className="page-header"><h1>Mis Entradas</h1></div>
-
-      {message && <div className="alert alert-success">{message}</div>}
-      {actionError && <div className="alert alert-error">{actionError}</div>}
-
-      {loading && (
-        <div className="loading-container">
-          <div className="loading-spinner" />
-          <span>Cargando tus entradas…</span>
+    <main className="flex-1 overflow-y-auto">
+      <div className="border-b border-white/[0.06] bg-gradient-to-b from-[#0c0c10] to-transparent px-6 py-10">
+        <div className="max-w-[900px] mx-auto text-center">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#6c63ff] to-[#8b5cf6] flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(108,99,255,0.2)]">
+            <Ticket className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold gradient-text mb-1">Mis Entradas</h1>
+          <p className="text-sm text-[#a1a1aa]">Gestioná tus tickets y QR de acceso</p>
         </div>
-      )}
+      </div>
 
-      {!loading && error && <div className="alert alert-error">{error}</div>}
+      <div className="max-w-[900px] mx-auto px-6 py-6">
+        {message && <div className="flex items-center gap-2 p-3 rounded-xl bg-success/10 border border-success/20 text-success text-sm mb-4"><CheckCircle className="w-4 h-4 flex-shrink-0" />{message}</div>}
+        {actionError && <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm mb-4"><AlertCircle className="w-4 h-4 flex-shrink-0" />{actionError}</div>}
 
-      {!loading && !error && tickets.length === 0 && (
-        <div className="empty-state">
-          <h3>No tenés entradas aún</h3>
-          <p>Comprá tickets en los <a href="/events">eventos disponibles</a>.</p>
-        </div>
-      )}
+        {loading && (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-[#a1a1aa]">
+            <div className="spinner" />
+            <span className="text-sm">Cargando tus entradas…</span>
+          </div>
+        )}
 
-      {!loading && !error && tickets.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '1.5rem', height: 'min(80vh, 540px)' }}>
-          <div className="my-tickets-list" style={{ overflowY: 'auto', height: '100%', padding: '0.25rem 0.5rem 0.5rem 0.5rem' }}>
+        {!loading && error && <div className="flex items-center gap-2 p-3 rounded-xl bg-error/10 border border-error/20 text-error text-sm mb-4"><AlertCircle className="w-4 h-4 flex-shrink-0" />{error}</div>}
+
+        {!loading && !error && tickets.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Ticket className="w-16 h-16 text-white/[0.06] mb-4" />
+            <h3 className="text-lg font-medium text-[#a1a1aa] mb-1">No tenés entradas aún</h3>
+            <p className="text-sm text-[#71717a]">Comprá tickets en los <a href="/events" className="text-[#6c63ff]">eventos disponibles</a>.</p>
+          </div>
+        )}
+
+        {!loading && !error && tickets.length > 0 && (
+          <div className="flex flex-col gap-3">
             {tickets.map((ticket, idx) => (
               <div
                 key={ticket.ticket_id || idx}
-                className="my-ticket-card"
-                onClick={() => setSelectedTicket(ticket)}
-                style={{
-                  cursor: 'pointer',
-                  outline: isSelected(ticket) ? '2px solid var(--accent)' : 'none',
-                  outlineOffset: '2px',
-                  transition: 'outline 0.15s',
-                }}
+                className="card p-4 animate-slideUp"
               >
-                <div className="my-ticket-header">
-                  <span className="my-ticket-event">
-                    {ticket.event_name || 'Evento desconocido'}
-                  </span>
-                  {ticket.listed
-                    ? <span className="badge badge-listed">En venta · {formatCurrency(ticket.listing_price)}</span>
-                    : <span className="badge badge-available">Activa</span>
-                  }
-                </div>
-
-                <div className="my-ticket-details">
-                  <div className="my-ticket-detail">
-                    <strong>Ticket ID:</strong> <span>#{ticket.ticket_id}</span>
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1" onClick={() => navigate(`/events/${ticket.event_id}`)}>
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6c63ff]/20 to-[#8b5cf6]/20 flex items-center justify-center flex-shrink-0 cursor-pointer hover:from-[#6c63ff]/30 hover:to-[#8b5cf6]/30 transition-all">
+                      <Ticket className="w-5 h-5 text-[#6c63ff]" />
+                    </div>
+                    <div className="min-w-0 cursor-pointer">
+                      <p className="text-sm font-medium text-[#f4f4f5] truncate hover:text-[#6c63ff] transition-colors">{ticket.event_name || 'Evento desconocido'}</p>
+                      <p className="text-[10px] font-mono text-[#71717a]">#{ticket.ticket_id}</p>
+                    </div>
                   </div>
-                  <div className="my-ticket-detail">
-                    <strong>Wallet:</strong>{' '}
-                    <span>
-                      {(ticket.owner_wallet || ticket.wallet_address)
-                        ? (ticket.owner_wallet || ticket.wallet_address).slice(0, 24) + '…'
-                        : '—'}
-                    </span>
-                  </div>
-                  <div className="my-ticket-detail">
-                    <strong>Reventas:</strong>{' '}
-                    <span>
-                      {ticket.resale_count ?? 0}
-                      {ticket.event_rules?.max_reventas != null ? ` / ${ticket.event_rules.max_reventas}` : ''}
-                    </span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setQrTarget(ticket)} title="Ver QR">
+                      <QrCode className="w-4 h-4 text-[#a1a1aa]" />
+                    </button>
+                    {ticket.listed
+                      ? <span className="badge bg-[#6c63ff]/10 text-[#6c63ff]">En venta · {formatCurrency(ticket.listing_price)}</span>
+                      : <span className="badge bg-success/10 text-success">Activa</span>
+                    }
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  {ticket.listed ? (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      disabled={actionLoading}
-                      onClick={e => { e.stopPropagation(); handleUnlist(ticket) }}
-                    >
-                      Cancelar venta
-                    </button>
-                  ) : canList(ticket) ? (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={e => { e.stopPropagation(); setMessage(''); setActionError(''); setListTarget(ticket) }}
-                    >
-                      Poner en venta
-                    </button>
-                  ) : (
-                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {ticket.event_rules?.nominada ? 'Entrada nominada' : 'Sin reventas disponibles'}
-                    </span>
-                  )}
+                <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-[#71717a] mb-3">
+                  <span className="flex items-center gap-1"><Wallet className="w-3 h-3" /> {ticket.owner_wallet?.slice(0, 16) || ticket.wallet_address?.slice(0, 16) || '—'}…</span>
+                  <span className="flex items-center gap-1"><Repeat className="w-3 h-3" /> Reventas: {ticket.resale_count ?? 0}{ticket.event_rules?.max_reventas != null ? ` / ${ticket.event_rules.max_reventas}` : ''}</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <button className="btn btn-primary btn-sm" onClick={() => navigate(`/events/${ticket.event_id}`)}>
+                    <ArrowRight className="w-3.5 h-3.5" /> Ir al evento
+                  </button>
+                  <div className="flex gap-2">
+                    {ticket.listed ? (
+                      <button className="btn btn-ghost btn-sm" disabled={actionLoading} onClick={e => { e.stopPropagation(); handleUnlist(ticket) }}>
+                        <X className="w-3.5 h-3.5" /> Cancelar venta
+                      </button>
+                    ) : canList(ticket) ? (
+                      <button className="btn btn-ghost btn-sm" onClick={() => { setMessage(''); setActionError(''); setListTarget(ticket) }}>
+                        <Tag className="w-3.5 h-3.5" /> Poner en venta
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-[#71717a] py-1">{ticket.event_rules?.nominada ? 'Nominada' : 'Sin reventas'}</span>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
-
-          <div style={{ height: '100%' }}>
-            <QRPanel ticket={selectedTicket} authFetch={authFetch} />
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {listTarget && (
-        <ListModal
-          ticket={listTarget}
-          loading={actionLoading}
-          onClose={() => setListTarget(null)}
-          onSubmit={handleList}
-        />
+        <ListModal ticket={listTarget} loading={actionLoading} onClose={() => setListTarget(null)} onSubmit={handleList} />
+      )}
+
+      {qrTarget && (
+        <QRModal ticket={qrTarget} onClose={() => setQrTarget(null)} />
       )}
     </main>
   )

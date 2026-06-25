@@ -59,12 +59,15 @@ export default function App() {
         <Route
           path="*"
           element={
-            <div className="page">
-              <div className="empty-state">
-                <h3>404 — Página no encontrada</h3>
-                <p>La página que buscás no existe.</p>
+            <main className="flex-1 flex items-center justify-center px-6">
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.03] flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl font-bold gradient-text">404</span>
+                </div>
+                <h3 className="text-lg font-semibold text-[#a1a1aa] mb-1">Página no encontrada</h3>
+                <p className="text-sm text-[#71717a]">La página que buscás no existe.</p>
               </div>
-            </div>
+            </main>
           }
         />
       </Routes>

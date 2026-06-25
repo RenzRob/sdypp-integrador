@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Calendar, MapPin, Ticket, DollarSign } from 'lucide-react'
 
 function formatDate(dateStr) {
   if (!dateStr) return 'Fecha por confirmar'
@@ -30,65 +31,78 @@ export default function EventCard({ event }) {
   const total = event.total_tickets ?? 0
   const suspended = event.status === 'suspended'
 
-  const ticketsClass =
-    suspended || available === 0
-      ? 'sold-out'
-      : available <= Math.max(1, Math.floor(total * 0.1))
-      ? 'low'
-      : ''
-
   const ticketsLabel =
-    suspended
-      ? 'Suspendido'
-      : available === 0
-      ? 'Agotado'
-      : `${available} / ${total} disponibles`
+    suspended ? 'Suspendido'
+    : available === 0 ? 'Agotado'
+    : `${available} / ${total}`
+
+  const ticketsBadgeClass =
+    suspended ? 'bg-warning/10 text-warning'
+    : available === 0 ? 'bg-error/10 text-error'
+    : available <= Math.max(1, Math.floor(total * 0.1)) ? 'bg-warning/10 text-warning'
+    : 'bg-white/[0.04] text-[#a1a1aa]'
 
   return (
     <div
-      className="card card-clickable event-card"
+      className="card card-clickable overflow-hidden group"
       onClick={() => navigate(`/events/${event.id}`)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => e.key === 'Enter' && navigate(`/events/${event.id}`)}
       aria-label={`Ver evento ${event.name}`}
     >
-      {/* Imagen izquierda */}
-      <div className="event-card-image">
-        {event.image_url ? (
-          <img src={event.image_url} alt={event.name} />
-        ) : (
-          <div className="event-card-image-placeholder">
-            🎟
-          </div>
-        )}
-      </div>
-
-      {/* Contenido derecho */}
-      <div className="event-card-body">
-        <div className="event-card-header">
-          <h3 className="event-card-title">{event.name}</h3>
-          {suspended
-            ? <span className="badge badge-suspended">Suspendido</span>
-            : available === 0 && <span className="badge badge-sold">Agotado</span>
-          }
-        </div>
-
-        <div className="event-card-meta">
-          <span>📅 {formatDate(event.date)}</span>
-          <span>📍 {event.venue}</span>
-          {event.description && (
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-              {event.description.length > 60
-                ? event.description.slice(0, 60) + '…'
-                : event.description}
-            </span>
+      <div className="flex flex-row gap-0">
+        <div className="relative w-[130px] min-w-[130px] flex-shrink-0 overflow-hidden bg-white/[0.03]">
+          {event.image_url ? (
+            <img
+              src={event.image_url}
+              alt={event.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-br from-[#1a1a2e] to-[#16213e]">
+              <Ticket className="w-8 h-8 text-white/[0.15]" />
+            </div>
           )}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[var(--surface)]" />
         </div>
 
-        <div className="event-card-footer">
-          <span className="event-price">{formatCurrency(event.price)}</span>
-          <span className={`event-tickets-left ${ticketsClass}`}>{ticketsLabel}</span>
+        <div className="flex-1 flex flex-col gap-2 p-4 min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-[15px] font-semibold text-[#f4f4f5] truncate m-0 leading-tight">
+              {event.name}
+            </h3>
+            <span className={`badge flex-shrink-0 ${ticketsBadgeClass}`}>
+              {ticketsLabel}
+            </span>
+          </div>
+
+          <div className="flex flex-col gap-1.5 text-sm text-[#a1a1aa]">
+            <span className="flex items-center gap-2 truncate">
+              <Calendar className="w-3.5 h-3.5 text-[#71717a] flex-shrink-0" />
+              <span>{formatDate(event.date)}</span>
+            </span>
+            <span className="flex items-center gap-2 truncate">
+              <MapPin className="w-3.5 h-3.5 text-[#71717a] flex-shrink-0" />
+              <span>{event.venue}</span>
+            </span>
+            {event.description && (
+              <span className="text-xs text-[#71717a] line-clamp-1">
+                {event.description}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/[0.06]">
+            <span className="text-lg font-bold bg-gradient-to-r from-[#6c63ff] to-[#8b5cf6] bg-clip-text text-transparent">
+              {formatCurrency(event.price)}
+            </span>
+            {!suspended && available > 0 && (
+              <span className="text-xs text-[#71717a]">
+                {available} / {total} disponibles
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
