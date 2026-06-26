@@ -1,0 +1,24 @@
+.github/workflows/ci-cd.yml
+  s_71e37ab359f33c::t_dad98a9a42fd1d 29
+docs/infraestructura-completa.md
+  s_71e37ab359f33c::t_9a0e2de1e2c2d3 139
+iac/local/docker-compose.yml
+  s_71e37ab359f33c::t_e1e6e8a044ba3b 58
+  s_71e37ab359f33c::t_ef89fa6fe1bef8 6,8-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "02ab1a5f21fe0e4ca2d317b25cf1e8e26ddaa0d8",
+  "prompts": {},
+  "sessions": {
+    "s_71e37ab359f33c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ca7dbbe-ff6c-42d6-90f8-25f0ca1e1ff7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
