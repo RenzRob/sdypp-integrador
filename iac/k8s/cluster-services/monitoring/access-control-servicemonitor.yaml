@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: access-control
+  namespace: monitoring
+  labels:
+    release: monitoring
+spec:
+  namespaceSelector:
+    matchNames:
+      - g-404
+  selector:
+    matchLabels:
+      app: access-control
+  endpoints:
+    - port: http
+      interval: 15s
+      path: /metrics

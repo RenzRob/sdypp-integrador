@@ -1,6 +1,7 @@
 'use strict';
 require('dotenv').config();
 const express = require('express');
+const client = require('prom-client');
 const { connect } = require('./lib/rabbitmq');
 
 const app = express();
@@ -16,6 +17,29 @@ app.use((req, res, next) => {
 });
 
 app.use(express.json());
+
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register],
+});
+
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    const route = (req.baseUrl || '') + (req.route?.path || req.path);
+    httpRequestsTotal.inc({ method: req.method, route, status_code: res.statusCode });
+  });
+  next();
+});
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 app.get('/ping', (req, res) => res.json({ status: 'ok', service: 'transaction-api' }));
 

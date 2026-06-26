@@ -1,0 +1,42 @@
+grafana:
+  grafana.ini:
+    server:
+      domain: ticketchain404.duckdns.org
+      root_url: "%(protocol)s://%(domain)s/grafana/"
+      serve_from_sub_path: true
+  adminPassword: "ticketchain2026"
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - ticketchain404.duckdns.org
+    path: /grafana
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - ticketchain404.duckdns.org
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: standard-rwo
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
+    # Permite descubrir ServiceMonitors de cualquier namespace (no solo monitoring)
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector:
+      any: true
+    serviceMonitorSelector: {}
+
+# Deshabilitar componentes que no necesitamos para reducir uso de recursos
+alertmanager:
+  enabled: false
+
+# node-exporter y kube-state-metrics vienen habilitados por defecto — los dejamos

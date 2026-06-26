@@ -44,5 +44,6 @@ spec:
   selector:
     app: access-control
   ports:
-    - port: 3004
+    - name: http
+      port: 3004
       targetPort: 3004

@@ -45,5 +45,6 @@ spec:
   selector:
     app: transaction-api
   ports:
-    - port: 3003
+    - name: http
+      port: 3003
       targetPort: 3003
