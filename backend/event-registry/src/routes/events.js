@@ -254,6 +254,10 @@ router.patch(
 
       const event = JSON.parse(raw);
 
+      if (event.status === 'completed') {
+        return res.status(409).json({ error: 'Cannot modify a completed event' });
+      }
+
       if (event.creator_id !== req.user.id) {
         return res.status(403).json({ error: 'Only the event creator can edit it' });
       }
@@ -267,6 +271,75 @@ router.patch(
       return res.json(safeEvent);
     } catch (err) {
       console.error('[PATCH /events/:id] Error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// POST /events/:id/finalize — finalize and archive an event (admin only — creator)
+router.post(
+  '/:id/finalize',
+  requireAdmin,
+  [
+    param('id').isUUID().withMessage('Invalid event ID'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg });
+    }
+
+    try {
+      const raw = await redis.get(`event:${req.params.id}`);
+      if (!raw) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+
+      const event = JSON.parse(raw);
+
+      if (event.creator_id !== req.user.id) {
+        return res.status(403).json({ error: 'Only the event creator can finalize it' });
+      }
+
+      if (event.status === 'completed') {
+        return res.status(409).json({ error: 'Event is already completed' });
+      }
+
+      // Archive blockchain to MinIO (cold storage)
+      const blocks = await redis.lrange(`blockchain:${req.params.id}`, 0, -1);
+      const parsedBlocks = blocks.map((b) => JSON.parse(b));
+
+      const archive = {
+        event: { ...event },
+        blockchain: parsedBlocks,
+        archived_at: new Date().toISOString(),
+      };
+
+      const archiveKey = `archives/${req.params.id}/blockchain.json`;
+      const archiveBuffer = Buffer.from(JSON.stringify(archive, null, 2));
+
+      try {
+        await minioClient.putObject(BUCKET, archiveKey, archiveBuffer, archiveBuffer.length, {
+          'Content-Type': 'application/json',
+        });
+      } catch (err) {
+        console.error('[finalize] MinIO archive error:', err.message);
+        return res.status(500).json({ error: 'Failed to archive blockchain to cold storage' });
+      }
+
+      // Clear active listings and ticket pool
+      await redis.del(`event:${req.params.id}:listings`);
+      await redis.del(`event:${req.params.id}:tickets:pool`);
+
+      // Set status to completed
+      event.status = 'completed';
+      event.completed_at = new Date().toISOString();
+      await redis.set(`event:${req.params.id}`, JSON.stringify(event));
+
+      const { genesis_block_hash, ...safeEvent } = event;
+      return res.json(safeEvent);
+    } catch (err) {
+      console.error('[POST /events/:id/finalize] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

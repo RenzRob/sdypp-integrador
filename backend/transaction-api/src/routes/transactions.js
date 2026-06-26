@@ -11,6 +11,15 @@ const { requireAuth } = require('../lib/auth');
 
 const router = express.Router();
 
+function isEventPast(event) {
+  if (!event?.date) return false;
+  return Date.now() >= new Date(event.date).getTime();
+}
+
+function isEventInactive(event) {
+  return event.status === 'suspended' || event.status === 'completed' || isEventPast(event);
+}
+
 // ─── Rutas de compra ──────────────────────────────────────────────────────
 
 // POST /transactions/buy
@@ -30,6 +39,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
 
       if (event.rules?.nominada) {
         const userTickets = await redis.smembers(`user:${req.user.wallet_address}:tickets`);
@@ -77,7 +87,7 @@ router.post(
   }
 );
 
-// POST /transactions/buy-listed — comprar una entrada en reventa
+// POST /transactions/buy-listed
 router.post(
   '/buy-listed',
   requireAuth,
@@ -97,6 +107,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
 
       const raw = await redis.hget(`event:${event_id}:listings`, ticket_id);
@@ -162,6 +173,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
 
       const owner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);
@@ -259,7 +271,7 @@ router.get(
   }
 );
 
-// POST /transactions/resell — transferencia directa a otra wallet
+// POST /transactions/resell
 router.post(
   '/resell',
   requireAuth,
@@ -281,6 +293,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
 
       const owner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);

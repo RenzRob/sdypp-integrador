@@ -128,6 +128,8 @@ export default function EventDetail() {
   if (!event) return null
 
   const suspended = event.status === 'suspended'
+  const completed = event.status === 'completed'
+  const past = completed || (event.date && new Date(event.date).getTime() <= Date.now())
   const available = event.available_tickets ?? 0
   const total = event.total_tickets ?? 0
   const rules = event.rules || {}
@@ -183,6 +185,11 @@ export default function EventDetail() {
                 <Ban className="w-4 h-4 flex-shrink-0" />Este evento está suspendido.
               </div>
             )}
+            {past && (
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.04] border border-white/[0.06] text-[#71717a] text-sm mb-4">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />Este evento finalizó.
+              </div>
+            )}
 
             <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">{event.name}</h1>
 
@@ -226,7 +233,9 @@ export default function EventDetail() {
 
               <div className="p-6">
                 {activeTab === 'oficial' && (
-                  suspended ? (
+                  past ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><CheckCircle className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento finalizado</p></div>
+                  ) : suspended ? (
                     <div className="flex flex-col items-center py-12 text-[#71717a]"><Ban className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento suspendido</p></div>
                   ) : available === 0 ? (
                     <div className="flex flex-col items-center py-12 text-[#71717a]"><Ticket className="w-10 h-10 mb-3 text-white/[0.1]" /><p>No quedan entradas en venta oficial</p></div>
@@ -249,7 +258,9 @@ export default function EventDetail() {
                 )}
 
                 {activeTab === 'reventa' && (
-                  suspended ? (
+                  past ? (
+                    <div className="flex flex-col items-center py-12 text-[#71717a]"><CheckCircle className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento finalizado</p></div>
+                  ) : suspended ? (
                     <div className="flex flex-col items-center py-12 text-[#71717a]"><Ban className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Evento suspendido</p></div>
                   ) : rules.nominada ? (
                     <div className="flex flex-col items-center py-12 text-[#71717a]"><Repeat className="w-10 h-10 mb-3 text-white/[0.1]" /><p>Reventa no permitida</p></div>

@@ -245,8 +245,14 @@ export default function MyTickets() {
     } finally { setActionLoading(false) }
   }
 
+  const isEventPast = (ticket) => {
+    if (ticket.event_status === 'completed') return true
+    return !!ticket.event_date && new Date(ticket.event_date).getTime() <= Date.now()
+  }
+
   const canList = (ticket) => {
     if (ticket.event_status === 'suspended') return false
+    if (isEventPast(ticket)) return false
     if (ticket.event_rules?.nominada) return false
     if (ticket.event_rules?.max_reventas != null && ticket.resale_count >= ticket.event_rules.max_reventas) return false
     return true
@@ -306,7 +312,9 @@ export default function MyTickets() {
                     <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setQrTarget(ticket)} title="Ver QR">
                       <QrCode className="w-4 h-4 text-[#a1a1aa]" />
                     </button>
-                    {ticket.listed
+                    {isEventPast(ticket)
+                      ? <span className="badge bg-white/[0.04] text-[#71717a]">Finalizado</span>
+                      : ticket.listed
                       ? <span className="badge bg-[#6c63ff]/10 text-[#6c63ff]">En venta · {formatCurrency(ticket.listing_price)}</span>
                       : <span className="badge bg-success/10 text-success">Activa</span>
                     }
