@@ -58,23 +58,39 @@ router.post(
 
     const { token } = req.body;
 
-    // Decodificar sin verificar para extraer event_id y ticket_id
-    let decoded;
+    // Decodificar sin verificar solo para obtener event_id/ticket_id y buscar el secreto
+    let payload;
     try {
-      decoded = jwt.decode(token);
+      payload = jwt.decode(token);
     } catch {
-      return res.status(400).json({ valid: false, message: 'Token malformado' });
+      return res.status(400).json({ valid: false, message: 'Token inválido' });
     }
 
-    if (!decoded?.event_id || !decoded?.ticket_id || !decoded?.wallet) {
+    if (!payload?.event_id || !payload?.ticket_id || !payload?.wallet) {
       return res.status(400).json({ valid: false, message: 'Token inválido: faltan campos' });
     }
 
-    const { event_id, ticket_id, wallet } = decoded;
+    const { event_id, ticket_id, wallet } = payload;
 
     try {
+      // Buscar el secreto del ticket para verificar la firma
+      const secret = await redis.get(`ticket:${event_id}:${ticket_id}:qr_secret`);
+      if (!secret) {
+        return res.json({ valid: false, message: 'QR no reconocido' });
+      }
+
+      // Verificar firma INMEDIATAMENTE (protege contra tokens forjados)
+      let verified;
+      try {
+        verified = jwt.verify(token, secret);
+      } catch (err) {
+        const msg = err.name === 'TokenExpiredError' ? 'QR expirado' : 'Firma del QR inválida';
+        return res.json({ valid: false, message: msg });
+      }
+
+      // A partir de acá el token está VERIFICADO — usar datos del verified, no del decode
       // Verificar que el evento existe y está activo
-      const rawEvent = await redis.get(`event:${event_id}`);
+      const rawEvent = await redis.get(`event:${verified.event_id}`);
       if (!rawEvent) {
         return res.json({ valid: false, message: 'Evento no encontrado' });
       }
@@ -83,28 +99,14 @@ router.post(
         return res.json({ valid: false, message: 'El evento no está activo' });
       }
 
-      // Obtener el secreto del ticket para verificar firma
-      const secret = await redis.get(`ticket:${event_id}:${ticket_id}:qr_secret`);
-      if (!secret) {
-        return res.json({ valid: false, message: 'QR no reconocido para este ticket' });
-      }
-
-      // Verificar firma y expiración del JWT
-      try {
-        jwt.verify(token, secret);
-      } catch (err) {
-        const msg = err.name === 'TokenExpiredError' ? 'QR expirado, pedile uno nuevo al titular' : 'Firma del QR inválida';
-        return res.json({ valid: false, message: msg });
-      }
-
       // Verificar que el wallet del token sigue siendo el dueño actual
-      const currentOwner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);
-      if (currentOwner !== wallet) {
+      const currentOwner = await redis.get(`ticket:${verified.event_id}:${verified.ticket_id}:owner`);
+      if (currentOwner !== verified.wallet) {
         return res.json({ valid: false, message: 'Este ticket ya no pertenece al titular del QR' });
       }
 
       // Verificar que no se haya usado ya (anti-replay)
-      const alreadyUsed = await redis.get(`ticket:${event_id}:${ticket_id}:checked_in`);
+      const alreadyUsed = await redis.get(`ticket:${verified.event_id}:${verified.ticket_id}:checked_in`);
       if (alreadyUsed) {
         return res.json({
           valid: false,
@@ -115,14 +117,14 @@ router.post(
 
       // Registrar ingreso
       const now = new Date().toISOString();
-      await redis.set(`ticket:${event_id}:${ticket_id}:checked_in`, now);
+      await redis.set(`ticket:${verified.event_id}:${verified.ticket_id}:checked_in`, now);
 
       return res.json({
         valid: true,
         message: 'Acceso concedido',
-        ticket_id,
+        ticket_id: verified.ticket_id,
         event_name: event.name,
-        wallet,
+        wallet: verified.wallet,
         checked_in_at: now,
       });
     } catch (err) {
