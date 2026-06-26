@@ -1,0 +1,34 @@
+frontend/src/components/ProtectedRoute.jsx
+  s_8717bdb3691680::t_0220a6d0eb3365 5,13-14
+  s_8717bdb3691680::t_3afc16ff7ab068 15-16
+backend/auth-service/src/lib/db.js
+  s_8717bdb3691680::t_c98bef7df1fa3a 43-59
+  s_8717bdb3691680::t_9de0f2d3c94aeb 23
+frontend/src/context/AuthContext.jsx
+  s_8717bdb3691680::t_30d4083175b736 21-22
+  s_8717bdb3691680::t_15e258fd3324dc 97
+frontend/src/components/Navbar.jsx
+  s_8717bdb3691680::t_123d551e740fe6 4,7
+  s_8717bdb3691680::t_44d9d36f9c9966 33-38,40,59-65
+  s_8717bdb3691680::t_d22ed085275d21 81-85
+frontend/src/pages/Login.jsx
+  s_8717bdb3691680::t_1586c408857ee7 18-20,28-29
+frontend/src/App.jsx
+  s_8717bdb3691680::t_1e034922d6aeb0 28-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "570ee33f58ded1283d636517da7d4abd3fc2d26f",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
