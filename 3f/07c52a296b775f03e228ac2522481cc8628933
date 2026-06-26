@@ -1,0 +1,27 @@
+iac/k8s/cluster-services/services/transaction-api-deployment.yaml
+  s_a7572fcb036e5e::t_1967583f0a6861 29,31-36
+  s_a7572fcb036e5e::t_d949b8d519ad46 30
+iac/k8s/cluster-services/services/access-control-deployment.yaml
+  s_a7572fcb036e5e::t_8164ef0b983cbc 29
+  s_a7572fcb036e5e::t_85766c7a9fe959 28,30-35
+iac/k8s/cluster-services/services/access-control-hpa.yaml
+  s_a7572fcb036e5e::t_fa12800901e487 1-19
+iac/k8s/cluster-services/services/transaction-api-hpa.yaml
+  s_a7572fcb036e5e::t_39ed3410824acc 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "3f07c52a296b775f03e228ac2522481cc8628933",
+  "prompts": {},
+  "sessions": {
+    "s_a7572fcb036e5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afee2941-19bc-45fa-bfcc-19e7cdb41419",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
