@@ -526,62 +526,6 @@ ul.points li::before{content:"→";color:var(--accent);font-weight:700;position:
   </div>
 </section>
 
-<!-- ══════════════ SLIDE QR: SECRETO ÚNICO POR TICKET ══════════════ -->
-<section class="slide" data-index="8">
-  <div class="slide-label">Seguridad del QR</div>
-  <h2>QR dinámico: secreto único por ticket</h2>
-  <div class="cols" style="margin-top:14px">
-
-    <div class="col" style="flex:1.1">
-      <div class="card" style="padding:18px">
-        <h3 style="margin-bottom:12px">¿Qué significa "firmado con secreto único"?</h3>
-        <p style="font-size:.82rem;color:var(--text);line-height:1.7;margin-bottom:12px">
-          Un JWT normal del sistema (login) se firma con el <code>JWT_SECRET</code> global del servidor — el mismo para todos los usuarios. El QR funciona diferente: <strong style="color:var(--text3)">cada ticket tiene su propia clave de firma, completamente independiente</strong>.
-        </p>
-        <div style="display:flex;flex-direction:column;gap:10px">
-
-          <div style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
-            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);margin-bottom:6px">Paso 1 — Primera vez que el dueño pide su QR</div>
-            <div style="font-size:.79rem;color:var(--text);line-height:1.6">El sistema genera <code style="color:var(--accent2)">crypto.randomBytes(32)</code> — 32 bytes aleatorios — y los guarda en Redis:</div>
-            <div style="margin-top:6px;font-family:monospace;font-size:.72rem;color:var(--green);background:#0d1117;padding:7px 10px;border-radius:5px;border:1px solid var(--border)">SET ticket:{eid}:{tid}:qr_secret &nbsp;"a3f9d2e18b4c5f670c1d2e3f..."</div>
-            <div style="font-size:.75rem;color:var(--text2);margin-top:5px">Ese secreto es exclusivo de ese ticket. No tiene ninguna relación con el JWT_SECRET global.</div>
-          </div>
-
-          <div style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
-            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);margin-bottom:6px">Paso 2 — Generación del QR</div>
-            <div style="font-family:monospace;font-size:.72rem;color:var(--accent2);background:#0d1117;padding:7px 10px;border-radius:5px;border:1px solid var(--border);line-height:1.8">jwt.sign(<br/>&nbsp;&nbsp;{ event_id, ticket_id, wallet },<br/>&nbsp;&nbsp;<span style="color:var(--yellow)">qr_secret</span>,&nbsp;&nbsp;<span style="color:var(--text2)">// el secreto del ticket, no el global</span><br/>&nbsp;&nbsp;{ expiresIn: 60 }&nbsp;&nbsp;<span style="color:var(--text2)">// expira en 60 segundos</span><br/>)</div>
-          </div>
-
-          <div style="padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px">
-            <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent2);margin-bottom:6px">Paso 3 — Verificación en la puerta</div>
-            <div style="font-size:.79rem;color:var(--text);line-height:1.6">El scanner decodifica el JWT sin verificar → lee <code>ticket_id</code> → busca en Redis el <code>qr_secret</code> de ese ticket → verifica la firma con ese secreto. Si no coincide: <span style="color:var(--red)">401 QR inválido</span>.</div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <div class="col">
-      <div class="card" style="padding:18px;height:auto;margin-bottom:14px">
-        <h3 style="margin-bottom:10px">El momento clave: la transferencia</h3>
-        <p style="font-size:.81rem;color:var(--text);line-height:1.7">Cuando el ticket cambia de dueño (reventa o transferencia), el sistema ejecuta:</p>
-        <div style="margin:8px 0;font-family:monospace;font-size:.72rem;color:var(--red);background:#0d1117;padding:7px 10px;border-radius:5px;border:1px solid rgba(248,81,73,.25)">DEL ticket:{eid}:{tid}:qr_secret</div>
-        <p style="font-size:.81rem;color:var(--text);line-height:1.7">El secreto <strong style="color:var(--text3)">desaparece de Redis</strong>. Si el vendedor original intenta usar su captura de pantalla del QR:</p>
-        <ul class="points" style="margin-top:8px">
-          <li style="font-size:.79rem">El scanner busca <code>qr_secret</code> en Redis → no existe → <span style="color:var(--red)">401 QR inválido</span>.</li>
-          <li style="font-size:.79rem">El nuevo dueño pide su QR → se genera un <strong>nuevo secreto completamente distinto</strong> → solo él puede producir un QR válido.</li>
-          <li style="font-size:.79rem">Una captura de pantalla del QR anterior, aunque no haya expirado el JWT, falla porque el secreto con el que fue firmado ya no existe.</li>
-        </ul>
-      </div>
-      <div class="card-sm" style="background:rgba(86,211,100,.04);border-color:rgba(86,211,100,.25)">
-        <h3 style="color:var(--green);font-size:.85rem;margin-bottom:8px">¿Por qué no alcanza con el TTL de 60s?</h3>
-        <p style="font-size:.79rem;color:var(--text);line-height:1.7">El TTL evita que alguien use un QR capturado hace 2 minutos. Pero <strong style="color:var(--text3)">no evita que el vendedor use su QR vigente justo antes de que expire</strong>, entrando él mientras el comprador legítimo queda afuera. El secreto único resuelve esto: al momento de la venta, el QR del vendedor deja de existir.</p>
-      </div>
-    </div>
-
-  </div>
-</section>
-
 <!-- ══════════════ SLIDE 10: PERSISTENCIA CON REDIS ══════════════ -->
 <section class="slide" data-index="9">
   <div class="slide-label">Persistencia</div>

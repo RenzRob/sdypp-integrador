@@ -3,7 +3,9 @@ require('dotenv').config();
 const jwt = require('jsonwebtoken');
 
 function requireAuth(req, res, next) {
-  const token = req.cookies?.token;
+  const authHeader = req.headers['authorization'];
+  const token = req.cookies?.token ||
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
   if (!token) {
     return res.status(401).json({ error: 'Token no encontrado. Iniciá sesión nuevamente.' });
   }
