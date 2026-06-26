@@ -1059,7 +1059,10 @@ Los secrets se crean manualmente con `kubectl create secret` (nunca se commitean
 ticketchain-secrets (cluster-services):
   JWT_SECRET, POSTGRES_USER, POSTGRES_PASSWORD,
   MINIO_ACCESS_KEY, MINIO_SECRET_KEY,
-  ADMIN_EMAIL, ADMIN_PASSWORD
+  ADMIN_EMAIL, ADMIN_PASSWORD,
+  MP_ACCESS_TOKEN,      ← token del vendedor de prueba (empieza con TEST-) o producción
+  MP_WEBHOOK_SECRET,    ← secreto para validar notificaciones de MP (opcional pero recomendado)
+  PUBLIC_API_URL        ← URL pública del cluster, ej: https://ticketchain404.duckdns.org
 
 ghcr-secret (ambos clusters):
   docker-registry auth para ghcr.io
@@ -1291,7 +1294,14 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=MINIO_SECRET_KEY=<valor> \
   --from-literal=ADMIN_EMAIL=<email> \
   --from-literal=ADMIN_PASSWORD=<password> \
+  --from-literal=MP_ACCESS_TOKEN=<token-vendedor-TEST-o-produccion> \
+  --from-literal=MP_WEBHOOK_SECRET=<secreto-webhook-mp> \
+  --from-literal=PUBLIC_API_URL=https://ticketchain404.duckdns.org \
   -n g-404
+
+# Nota MP_ACCESS_TOKEN: obtenerlo en mercadopago.com/developers → tu app → Credenciales.
+# Para testing usar el token del usuario vendedor de prueba (empieza con TEST-).
+# MP_WEBHOOK_SECRET es el "secret" configurado en la sección Webhooks de la app de MP.
 
 kubectl create secret docker-registry ghcr-secret \
   --docker-server=ghcr.io --docker-username=RenzRob \

@@ -85,6 +85,7 @@ router.post(
       const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
       const preference = new Preference(client);
 
+      const baseUrl = process.env.PUBLIC_API_URL || 'http://localhost';
       const response = await preference.create({
         body: {
           items: [
@@ -97,11 +98,11 @@ router.post(
             }
           ],
           external_reference: tx_id,
-          notification_url: process.env.PUBLIC_API_URL ? `${process.env.PUBLIC_API_URL}/api/transactions/mp/webhook` : undefined,
+          notification_url: `${baseUrl}/api/transactions/mp/webhook`,
           back_urls: {
-            success: `http://localhost/api/transactions/mp/success`,
-            failure: `http://localhost/events/${event_id}?error=payment_failed`,
-            pending: `http://localhost/events/${event_id}?error=payment_pending`
+            success: `${baseUrl}/api/transactions/mp/success`,
+            failure: `${baseUrl}/events/${event_id}?error=payment_failed`,
+            pending: `${baseUrl}/events/${event_id}?error=payment_pending`
           }
         }
       });
@@ -416,6 +417,7 @@ router.post(
       const client = new MercadoPagoConfig({ accessToken: process.env.MP_ACCESS_TOKEN });
       const preference = new Preference(client);
 
+      const baseUrl = process.env.PUBLIC_API_URL || 'http://localhost';
       const response = await preference.create({
         body: {
           items: [
@@ -428,11 +430,11 @@ router.post(
             }
           ],
           external_reference: tx_id,
-          notification_url: process.env.PUBLIC_API_URL ? `${process.env.PUBLIC_API_URL}/api/transactions/mp/webhook` : undefined,
+          notification_url: `${baseUrl}/api/transactions/mp/webhook`,
           back_urls: {
-            success: `http://localhost/api/transactions/mp/success`,
-            failure: `http://localhost/events/${event_id}?error=payment_failed`,
-            pending: `http://localhost/events/${event_id}?error=payment_pending`
+            success: `${baseUrl}/api/transactions/mp/success`,
+            failure: `${baseUrl}/events/${event_id}?error=payment_failed`,
+            pending: `${baseUrl}/events/${event_id}?error=payment_pending`
           }
         }
       });

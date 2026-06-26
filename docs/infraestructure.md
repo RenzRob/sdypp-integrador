@@ -75,6 +75,9 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=POSTGRES_PASSWORD=<password> \
   --from-literal=MINIO_ACCESS_KEY=<access key> \
   --from-literal=MINIO_SECRET_KEY=<secret key> \
+  --from-literal=MP_ACCESS_TOKEN=<token TEST- o produccion de MP> \
+  --from-literal=MP_WEBHOOK_SECRET=<secreto webhook MP> \
+  --from-literal=PUBLIC_API_URL=https://ticketchain404.duckdns.org \
   -n g-404
 
 kubectl create secret docker-registry ghcr-secret \
