@@ -1,0 +1,23 @@
+backend/transaction-api/src/routes/transactions.js
+  s_8717bdb3691680::t_9253170ecf3d73 374,376-377,390-391
+frontend/src/pages/MyTickets.jsx
+  s_8717bdb3691680::t_88ee99c5fda04f 335-340
+  s_8717bdb3691680::t_2a0203239cf317 5
+  s_8717bdb3691680::t_f61f99ac76c868 312-323
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "b3098ae98d960d08334eb3dcc5f127f1721c01a7",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
