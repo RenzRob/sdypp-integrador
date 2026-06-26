@@ -1,0 +1,19 @@
+iac/k8s/cluster-services/services/auth-deployment.yaml
+  s_8717bdb3691680::t_ee0ebcece29fe9 54-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "0ccaad2763ec52e8f1db5603734b1916353fe049",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
