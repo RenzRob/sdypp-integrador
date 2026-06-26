@@ -1,0 +1,31 @@
+backend/transaction-api/src/routes/transactions.js
+  s_71e37ab359f33c::t_7d9eac84769934 420,433,435-437
+  s_71e37ab359f33c::t_90d408a847ed0f 88,101,103-105
+docs/infraestructura-completa.md
+  s_71e37ab359f33c::t_f12219eb45d951 1062-1065
+  s_71e37ab359f33c::t_28d70459684812 1297-1299,1302-1304
+  s_71e37ab359f33c::t_8f8d498eb6d74e 1305
+iac/k8s/cluster-services/config/configmap.yaml
+  s_71e37ab359f33c::t_dc1849a213af66 16
+docs/comandos.md
+  s_71e37ab359f33c::t_fff044b49f6c4a 128-130
+  s_71e37ab359f33c::t_49d7a295e79542 220-222
+docs/infraestructure.md
+  s_71e37ab359f33c::t_43e90fe2c6c58b 78-80
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "0c94fc9ef0a40173b9f98f6eea4febcbf0895e93",
+  "prompts": {},
+  "sessions": {
+    "s_71e37ab359f33c": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5ca7dbbe-ff6c-42d6-90f8-25f0ca1e1ff7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
