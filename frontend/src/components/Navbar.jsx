@@ -1,7 +1,7 @@
 import React from 'react'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Ticket, Calendar, PlusCircle, Activity, LogOut, LogIn, UserPlus, Shield, ScanLine } from 'lucide-react'
+import { Ticket, Calendar, PlusCircle, LogOut, LogIn, UserPlus, Shield, ScanLine } from 'lucide-react'
 
 export default function Navbar() {
   const { user, isAdmin, isScanner, logout } = useAuth()
@@ -49,10 +49,6 @@ export default function Navbar() {
               <NavLink to="/admin/create-event" className={linkClass}>
                 <PlusCircle className="w-4 h-4" />
                 Crear Evento
-              </NavLink>
-              <NavLink to="/admin/platform-status" className={linkClass}>
-                <Activity className="w-4 h-4" />
-                Estado
               </NavLink>
             </>
           )}

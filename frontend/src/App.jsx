@@ -11,7 +11,6 @@ import MyTickets from './pages/MyTickets.jsx'
 import Scan from './pages/Scan.jsx'
 import CreateEvent from './pages/admin/CreateEvent.jsx'
 import EditEvent from './pages/admin/EditEvent.jsx'
-import PlatformStatus from './pages/admin/PlatformStatus.jsx'
 import Checkout from './pages/Checkout.jsx'
 
 export default function App() {
@@ -54,14 +53,6 @@ export default function App() {
           element={
             <AdminRoute>
               <EditEvent />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/platform-status"
-          element={
-            <AdminRoute>
-              <PlatformStatus />
             </AdminRoute>
           }
         />
