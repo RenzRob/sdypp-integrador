@@ -136,7 +136,7 @@ postgres:
   image: postgres:16-alpine
   environment:
     POSTGRES_USER: ticketchain
-    POSTGRES_PASSWORD: ticketchain
+    POSTGRES_PASSWORD: <valor>
     POSTGRES_DB: ticketchain
   volumes:
     - postgres_data:/var/lib/postgresql/data
