@@ -1,0 +1,72 @@
+docs/presentacion.html
+  s_ce972de4b87b95::t_e6c23455d80640 890
+  s_ce972de4b87b95::t_139064b797a06f 901-903
+  s_ce972de4b87b95::t_d36f722410bb6e 1-62,65-218,220-347,375,385,399,403-405,407-528,530,587-710,712-738,740-766,768-794,796-822,824-842,844-871,874-889,891-900,904-1048
+  s_ce972de4b87b95::t_95f04311893379 63-64
+  s_ce972de4b87b95::t_b69894e9ba1d6f 843
+  s_ce972de4b87b95::t_fa60e2f3de4b12 219
+  s_ce972de4b87b95::t_08b5544677e21a 348-374,376-384,386-398,400-402,406
+  s_ce972de4b87b95::t_6a1bab71509932 529,531-586
+  s_ce972de4b87b95::t_38e3dd33a2cd09 711,739
+  s_ce972de4b87b95::t_6404d089769533 767,795,823
+  s_ce972de4b87b95::t_05f189d812b644 872-873
+docs/comandos.md
+  s_62cf0641cca74b::t_5bbb7f3f794376 238-241,244,247-253,255-261,263-266,268-287
+  s_4fd88e0b6823cd::t_de8b8862b316bb 289-322
+  s_4fd88e0b6823cd::t_565fa178cd0bdf 323-341
+  s_62cf0641cca74b::t_34e5cb3949e162 288
+docs/pipeline-cicd-auth.md
+  s_d2aa5120c38378::t_3821b83fc009bc 1
+  s_d2aa5120c38378::t_c974bc87fcfdb0 2-25,27,48,50-75
+  s_d2aa5120c38378::t_893102788e8d00 26,28-47,49
+backend/auth-service/src/lib/db.js
+  s_a809451681f9da::t_b1bd49af1bc201 38,55,72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "ad31d19be12e9e1da9a01fe2426cf2bc7c5c746c",
+  "prompts": {},
+  "sessions": {
+    "s_4fd88e0b6823cd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9bb6b6b3-85db-43bc-a4d2-d4213f1408c4",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_62cf0641cca74b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c50ef156-ba2d-4a80-a11c-691d01c726a3",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_a809451681f9da": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9630bff6-9558-4911-a4cb-dd97d6893d9a",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_ce972de4b87b95": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "000e4732-9333-49a0-8327-9bb28439c0b9",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_d2aa5120c38378": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "2070fd51-abdc-4d07-a920-5574eb9322b2",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
