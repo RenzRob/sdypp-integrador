@@ -73,16 +73,6 @@ router.post(
     const { event_id, ticket_id, wallet } = decoded;
 
     try {
-      // Verificar que el evento existe y está activo
-      const rawEvent = await redis.get(`event:${event_id}`);
-      if (!rawEvent) {
-        return res.json({ valid: false, message: 'Evento no encontrado' });
-      }
-      const event = JSON.parse(rawEvent);
-      if (event.status !== 'active') {
-        return res.json({ valid: false, message: 'El evento no está activo' });
-      }
-
       // Obtener el secreto del ticket para verificar firma
       const secret = await redis.get(`ticket:${event_id}:${ticket_id}:qr_secret`);
       if (!secret) {
@@ -95,6 +85,16 @@ router.post(
       } catch (err) {
         const msg = err.name === 'TokenExpiredError' ? 'QR expirado, pedile uno nuevo al titular' : 'Firma del QR inválida';
         return res.json({ valid: false, message: msg });
+      }
+
+      // Verificar que el evento existe y está activo
+      const rawEvent = await redis.get(`event:${event_id}`);
+      if (!rawEvent) {
+        return res.json({ valid: false, message: 'Evento no encontrado' });
+      }
+      const event = JSON.parse(rawEvent);
+      if (event.status !== 'active') {
+        return res.json({ valid: false, message: 'El evento no está activo' });
       }
 
       // Verificar que el wallet del token sigue siendo el dueño actual
