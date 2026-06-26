@@ -1,0 +1,23 @@
+docs/sequence-diagrams.html
+  s_fb4b5dc61c6d71::t_c15d54bc91bef8 224-487
+  s_fb4b5dc61c6d71::t_8c03ee618a587a 1-223,488-589,600-1475,2173-2276
+  s_fb4b5dc61c6d71::t_beb3d08ed7cceb 1476-1761,1880-2172
+  s_fb4b5dc61c6d71::t_7039bc1b27c7f9 1762-1879
+  s_fb4b5dc61c6d71::t_7b36bdea6430a4 590-599
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "ab754cc800ab05bb89c639d1e1857c2306071db8",
+  "prompts": {},
+  "sessions": {
+    "s_fb4b5dc61c6d71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00339cd3-c39b-4a4d-93fe-5132f6862c9c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
