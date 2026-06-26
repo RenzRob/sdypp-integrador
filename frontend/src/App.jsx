@@ -25,7 +25,14 @@ export default function App() {
         <Route path="/events" element={<Events />} />
         <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/scan" element={<Scan />} />
+        <Route
+          path="/scan"
+          element={
+            <ProtectedRoute allowedRoles={['scanner', 'admin']}>
+              <Scan />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/my-tickets"
           element={

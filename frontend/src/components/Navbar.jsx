@@ -1,10 +1,10 @@
 import React from 'react'
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Ticket, Calendar, PlusCircle, Activity, LogOut, LogIn, UserPlus, Shield, ChevronDown } from 'lucide-react'
+import { Ticket, Calendar, PlusCircle, Activity, LogOut, LogIn, UserPlus, Shield, ScanLine } from 'lucide-react'
 
 export default function Navbar() {
-  const { user, isAdmin, logout } = useAuth()
+  const { user, isAdmin, isScanner, logout } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -30,12 +30,14 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
-          <NavLink to="/events" className={linkClass}>
-            <Calendar className="w-4 h-4" />
-            Eventos
-          </NavLink>
+          {!isScanner && (
+            <NavLink to="/events" className={linkClass}>
+              <Calendar className="w-4 h-4" />
+              Eventos
+            </NavLink>
+          )}
 
-          {user && !isAdmin && (
+          {user && !isAdmin && !isScanner && (
             <NavLink to="/my-tickets" className={linkClass}>
               <Ticket className="w-4 h-4" />
               Mis Entradas
@@ -54,6 +56,13 @@ export default function Navbar() {
               </NavLink>
             </>
           )}
+
+          {isScanner && (
+            <NavLink to="/scan" className={linkClass}>
+              <ScanLine className="w-4 h-4" />
+              Escanear
+            </NavLink>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -67,6 +76,11 @@ export default function Navbar() {
                 {isAdmin && (
                   <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 text-accent text-[10px] font-semibold uppercase tracking-wider">
                     <Shield className="w-3 h-3" /> Admin
+                  </span>
+                )}
+                {isScanner && (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#22c55e]/10 text-[#22c55e] text-[10px] font-semibold uppercase tracking-wider">
+                    <ScanLine className="w-3 h-3" /> Scanner
                   </span>
                 )}
               </div>

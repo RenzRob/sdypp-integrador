@@ -20,6 +20,7 @@ async function initSchema() {
   `);
   console.log('[DB] Schema ready');
   await seedAdmin();
+  await seedScanner();
 }
 
 async function seedAdmin() {
@@ -37,6 +38,23 @@ async function seedAdmin() {
     [password_hash, email]
   );
   console.log('[DB] Admin user ready');
+}
+
+async function seedScanner() {
+  const email = process.env.SCANNER_EMAIL;
+  const password = process.env.SCANNER_PASSWORD;
+  if (!email || !password) {
+    console.warn('[DB] SCANNER_EMAIL / SCANNER_PASSWORD not set — skipping scanner seed');
+    return;
+  }
+  const password_hash = await bcrypt.hash(password, 12);
+  await pool.query(
+    `INSERT INTO users (id, email, password_hash, role, wallet_address)
+     VALUES (gen_random_uuid(), $2, $1, 'scanner', NULL)
+     ON CONFLICT (email) DO NOTHING`,
+    [password_hash, email]
+  );
+  console.log('[DB] Scanner user ready');
 }
 
 module.exports = { pool, initSchema };

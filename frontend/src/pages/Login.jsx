@@ -15,7 +15,9 @@ export default function Login() {
   const from = location.state?.from?.pathname || '/events'
 
   useEffect(() => { document.title = 'Iniciar sesión — TicketChain' }, [])
-  useEffect(() => { if (user) navigate(from, { replace: true }) }, [user, navigate, from])
+  useEffect(() => {
+    if (user) navigate(user.role === 'scanner' ? '/scan' : from, { replace: true })
+  }, [user, navigate, from])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -23,8 +25,8 @@ export default function Login() {
     if (!email.trim() || !password) { setError('Completá todos los campos.'); return }
     setLoading(true)
     try {
-      await login(email.trim(), password)
-      navigate(from, { replace: true })
+      const data = await login(email.trim(), password)
+      navigate(data.user.role === 'scanner' ? '/scan' : from, { replace: true })
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión')
     } finally { setLoading(false) }

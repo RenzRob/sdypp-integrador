@@ -18,7 +18,8 @@ export function AuthProvider({ children }) {
 
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY))
 
-  const isAdmin = user?.role === 'admin'
+  const isAdmin   = user?.role === 'admin'
+  const isScanner = user?.role === 'scanner'
 
   const saveSession = (userData, jwt) => {
     localStorage.setItem(TOKEN_KEY, jwt)
@@ -93,7 +94,7 @@ export function AuthProvider({ children }) {
   }, [clearSession])
 
   return (
-    <AuthContext.Provider value={{ user, token, isAdmin, login, register, logout, authFetch }}>
+    <AuthContext.Provider value={{ user, token, isAdmin, isScanner, login, register, logout, authFetch }}>
       {children}
     </AuthContext.Provider>
   )
