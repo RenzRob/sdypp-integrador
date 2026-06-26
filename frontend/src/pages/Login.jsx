@@ -12,12 +12,19 @@ export default function Login() {
   const { login, user } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = location.state?.from?.pathname || '/events'
+  const fromLocation = location.state?.from
+  const from = (fromLocation?.pathname || '/events') + (fromLocation?.search || '')
+
+  // Scanner: volver a la URL original si tiene token, sino ir a /scan
+  const resolveRedirect = (role) => {
+    if (role === 'scanner') return from.startsWith('/scan') ? from : '/scan'
+    return from || '/events'
+  }
 
   useEffect(() => { document.title = 'Iniciar sesión — TicketChain' }, [])
   useEffect(() => {
-    if (user) navigate(user.role === 'scanner' ? '/scan' : from, { replace: true })
-  }, [user, navigate, from])
+    if (user) navigate(resolveRedirect(user.role), { replace: true })
+  }, [user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -26,7 +33,7 @@ export default function Login() {
     setLoading(true)
     try {
       const data = await login(email.trim(), password)
-      navigate(data.user.role === 'scanner' ? '/scan' : from, { replace: true })
+      navigate(resolveRedirect(data.user.role), { replace: true })
     } catch (err) {
       setError(err.message || 'Error al iniciar sesión')
     } finally { setLoading(false) }
