@@ -1,35 +1,16 @@
 #!/usr/bin/env python3
 """
 setup.py — Prepara datos de test para la prueba de carga TicketChain.
-
-Crea los eventos de prueba y loguea al usuario dedicado de carga
-(load-test, seeded en DB via secrets), luego guarda test-data.json
-para que k6 lo levante sin necesidad de autenticarse en cada VU.
-
-Prerequisitos:
-    - Usuario load-test ya creado en el cluster (via LOAD_TEST_EMAIL/PASSWORD en secrets)
-    - pip install requests
-
-Uso:
-    python3 setup.py \
-        --base-url          https://ticketchain404.duckdns.org \
-        --admin-email       admin@ticketchain.com \
-        --admin-password    <PASSWORD_ADMIN> \
-        --load-test-email   loadtest@ticketchain.com \
-        --load-test-password <PASSWORD_LOAD_TEST> \
-        --events            5 \
-        --tickets-per-event 25000
+Solo usa librería estándar de Python (urllib) — sin dependencias externas.
 """
 import argparse
 import json
 import sys
 import time
+import urllib.request
+import urllib.error
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-
-import requests
-
-SESSION = requests.Session()
-SESSION.timeout = 120
 
 
 def parse_args():
@@ -39,24 +20,33 @@ def parse_args():
     p.add_argument("--base-url",            default="https://ticketchain404.duckdns.org")
     p.add_argument("--admin-email",         required=True)
     p.add_argument("--admin-password",      required=True)
-    p.add_argument("--load-test-email",     required=True,
-                   help="Email del usuario de carga (LOAD_TEST_EMAIL del secret)")
-    p.add_argument("--load-test-password",  required=True,
-                   help="Password del usuario de carga (LOAD_TEST_PASSWORD del secret)")
-    p.add_argument("--events",              type=int, default=5,
-                   help="Número de eventos a crear (default: 5)")
-    p.add_argument("--tickets-per-event",   type=int, default=25000,
-                   help="Tickets por evento (default: 25000)")
+    p.add_argument("--load-test-email",     required=True)
+    p.add_argument("--load-test-password",  required=True)
+    p.add_argument("--events",              type=int, default=5)
+    p.add_argument("--tickets-per-event",   type=int, default=25000)
     p.add_argument("--output",              default="test-data.json")
     return p.parse_args()
 
 
+def post(url, payload, token=None, timeout=120):
+    body = json.dumps(payload).encode()
+    headers = {"Content-Type": "application/json"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return resp.status, json.loads(resp.read())
+    except urllib.error.HTTPError as e:
+        return e.code, {}
+
+
 def login(base_url, email, password):
-    r = SESSION.post(f"{base_url}/api/auth/login",
-                     json={"email": email, "password": password})
-    if r.status_code != 200:
-        raise RuntimeError(f"Login fallido ({r.status_code}): {r.text[:200]}")
-    return r.json()["token"]
+    status, data = post(f"{base_url}/api/auth/login",
+                        {"email": email, "password": password})
+    if status != 200:
+        raise RuntimeError(f"Login fallido (HTTP {status})")
+    return data["token"]
 
 
 def create_event(base_url, admin_token, name, total_tickets):
@@ -70,18 +60,18 @@ def create_event(base_url, admin_token, name, total_tickets):
         "venue":         "Estadio Stress Test 404",
         "total_tickets": total_tickets,
         "price":         15000,
+        "load_test":     True,
         "rules": {
-            "precio_max":    200,   # permite hasta 3× el precio original
-            "max_reventas":  99,    # sin límite práctico para el test
-            "nominada":      False, # un mismo usuario puede comprar N tickets
+            "precio_max":    200,
+            "max_reventas":  99,
+            "nominada":      False,
             "ventana_venta": 1,
         },
     }
-    headers = {"Authorization": f"Bearer {admin_token}"}
-    r = SESSION.post(f"{base_url}/api/events", json=payload, headers=headers)
-    if r.status_code != 201:
-        raise RuntimeError(f"Crear evento fallido ({r.status_code}): {r.text[:200]}")
-    return r.json()["id"]
+    status, data = post(f"{base_url}/api/events", payload, token=admin_token)
+    if status != 201:
+        raise RuntimeError(f"Crear evento fallido (HTTP {status})")
+    return data["id"]
 
 
 def main():
@@ -99,7 +89,7 @@ def main():
     print()
 
     # ── 1. Login admin ────────────────────────────────────────────────────────
-    print("▶  [1/4] Login como admin (para crear eventos)...")
+    print("▶  [1/4] Login como admin...")
     try:
         admin_token = login(base, args.admin_email, args.admin_password)
         print("   ✓  Admin autenticado\n")
@@ -108,14 +98,13 @@ def main():
         sys.exit(1)
 
     # ── 2. Login usuario de carga ─────────────────────────────────────────────
-    print("▶  [2/4] Login como usuario de carga (load-test seeded)...")
+    print("▶  [2/4] Login como usuario de carga...")
     try:
         load_test_token = login(base, args.load_test_email, args.load_test_password)
         print("   ✓  Usuario de carga autenticado\n")
     except Exception as e:
         print(f"   ✗  {e}")
         print("   ¿Está el secret LOAD_TEST_EMAIL/PASSWORD aplicado en el cluster?")
-        print("   Verificá con: kubectl get secret ticketchain-secrets -n g-404 -o jsonpath='{.data.LOAD_TEST_EMAIL}'")
         sys.exit(1)
 
     # ── 3. Crear eventos ──────────────────────────────────────────────────────
@@ -143,9 +132,9 @@ def main():
     # ── 4. Guardar test-data.json ─────────────────────────────────────────────
     print(f"▶  [4/4] Guardando {args.output}...")
     data = {
-        "base_url":  base,
-        "events":    event_ids,
-        "token":     load_test_token,
+        "base_url":   base,
+        "events":     event_ids,
+        "token":      load_test_token,
         "user_email": args.load_test_email,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "config": {

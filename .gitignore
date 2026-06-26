@@ -38,3 +38,4 @@ frontend/package-lock.json
 # ── Load tests ────────────────────────────────────────────────────────────────
 load-tests/test-data.json
 load-tests/results/
+load-tests/.venv/

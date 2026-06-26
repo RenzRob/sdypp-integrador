@@ -68,7 +68,7 @@ async function seedLoadTest() {
   const password_hash = await bcrypt.hash(password, 12);
   await pool.query(
     `INSERT INTO users (id, email, password_hash, role, wallet_address)
-     VALUES (gen_random_uuid(), $2, $1, 'user', NULL)
+     VALUES (gen_random_uuid(), $2, $1, 'load_test', NULL)
      ON CONFLICT (email) DO NOTHING`,
     [password_hash, email]
   );

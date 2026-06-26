@@ -20,6 +20,11 @@ function isEventInactive(event) {
   return event.status === 'suspended' || event.status === 'completed' || isEventPast(event);
 }
 
+function canAccessEvent(req, event) {
+  const isLoadTestUser = req.user?.role === 'load_test';
+  return isLoadTestUser ? !!event.load_test : !event.load_test;
+}
+
 // ─── Rutas de compra ──────────────────────────────────────────────────────
 
 // POST /transactions/buy
@@ -37,6 +42,8 @@ router.post(
       const rawEvent = await redis.get(`event:${event_id}`);
       if (!rawEvent) return res.status(404).json({ error: 'Event not found' });
       const event = JSON.parse(rawEvent);
+
+      if (!canAccessEvent(req, event)) return res.status(404).json({ error: 'Event not found' });
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
       if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
@@ -108,6 +115,8 @@ router.post(
       if (!rawEvent) return res.status(404).json({ error: 'Event not found' });
       const event = JSON.parse(rawEvent);
 
+      if (!canAccessEvent(req, event)) return res.status(404).json({ error: 'Event not found' });
+
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
       if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
@@ -175,6 +184,8 @@ router.post(
       const rawEvent = await redis.get(`event:${event_id}`);
       if (!rawEvent) return res.status(404).json({ error: 'Event not found' });
       const event = JSON.parse(rawEvent);
+
+      if (!canAccessEvent(req, event)) return res.status(404).json({ error: 'Event not found' });
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
       if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
@@ -295,6 +306,8 @@ router.post(
       const rawEvent = await redis.get(`event:${event_id}`);
       if (!rawEvent) return res.status(404).json({ error: 'Event not found' });
       const event = JSON.parse(rawEvent);
+
+      if (!canAccessEvent(req, event)) return res.status(404).json({ error: 'Event not found' });
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
       if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });

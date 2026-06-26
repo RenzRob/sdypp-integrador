@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const multer = require('multer');
 const redis = require('../lib/redis');
-const { requireAdmin } = require('../lib/auth');
+const { requireAdmin, requireOptionalAuth } = require('../lib/auth');
 const { client: minioClient, BUCKET } = require('../lib/minio');
 
 const upload = multer({
@@ -73,7 +73,9 @@ router.post('/upload-image', requireAdmin, upload.single('image'), async (req, r
 });
 
 // GET /events
-router.get('/', async (req, res) => {
+router.get('/', requireOptionalAuth, async (req, res) => {
+  const isLoadTestViewer = req.user?.role === 'load_test';
+
   try {
     const eventIds = await redis.lrange('events:list', 0, -1);
     if (!eventIds || eventIds.length === 0) {
@@ -86,7 +88,10 @@ router.get('/', async (req, res) => {
       if (!raw) continue;
 
       const ev = JSON.parse(raw);
-      const { genesis_block_hash, ...safeEvent } = ev;
+
+      if (isLoadTestViewer ? !ev.load_test : ev.load_test) continue;
+
+      const { genesis_block_hash, load_test: _lt, ...safeEvent } = ev;
 
       const available_tickets = parseInt(
         (await redis.get(`event:${id}:available_tickets`)) || '0'
@@ -117,6 +122,7 @@ router.post(
     body('rules.max_reventas').isInt({ min: 0 }).withMessage('rules.max_reventas required'),
     body('rules.nominada').isBoolean().withMessage('rules.nominada must be boolean'),
     body('rules.ventana_venta').isInt({ min: 0 }).withMessage('rules.ventana_venta required (hours)'),
+    body('load_test').optional().isBoolean().withMessage('load_test must be boolean'),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -124,7 +130,7 @@ router.post(
       return res.status(400).json({ error: errors.array()[0].msg });
     }
 
-    const { name, description, date, venue, total_tickets, price, rules, image_url } = req.body;
+    const { name, description, date, venue, total_tickets, price, rules, image_url, load_test } = req.body;
 
     try {
       const event_id = uuidv4();
@@ -161,6 +167,7 @@ router.post(
         price,
         rules,
         image_url: image_url || null,
+        load_test: load_test === true || load_test === 'true',
         genesis_block_hash,
         status: 'active',
         created_at: timestamp,
@@ -198,12 +205,15 @@ router.post(
 // GET /events/:id
 router.get(
   '/:id',
+  requireOptionalAuth,
   [param('id').isUUID().withMessage('Invalid event ID')],
   async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       return res.status(400).json({ error: errors.array()[0].msg });
     }
+
+    const isLoadTestViewer = req.user?.role === 'load_test';
 
     try {
       const raw = await redis.get(`event:${req.params.id}`);
@@ -212,13 +222,19 @@ router.get(
       }
 
       const event = JSON.parse(raw);
+
+      if (isLoadTestViewer ? !event.load_test : event.load_test) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+
       const blockchain_length = await redis.llen(`blockchain:${req.params.id}`);
 
       const available_tickets = parseInt(
         (await redis.get(`event:${req.params.id}:available_tickets`)) || '0'
       );
 
-      return res.json({ ...event, available_tickets, blockchain_length });
+      const { genesis_block_hash, load_test: _lt, ...safeEvent } = event;
+      return res.json({ ...safeEvent, available_tickets, blockchain_length });
     } catch (err) {
       console.error('[GET /events/:id] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });

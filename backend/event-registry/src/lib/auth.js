@@ -31,4 +31,25 @@ function requireAdmin(req, res, next) {
   });
 }
 
-module.exports = { requireAuth, requireAdmin };
+function requireOptionalAuth(req, res, next) {
+  req.user = null;
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+  const token = authHeader.slice(7);
+  try {
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+      wallet_address: payload.wallet_address,
+    };
+  } catch (_) {
+    // invalid or expired token → treat as unauthenticated
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireAdmin, requireOptionalAuth };
