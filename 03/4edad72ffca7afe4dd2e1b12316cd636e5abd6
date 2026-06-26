@@ -1,0 +1,54 @@
+iac/k8s/cluster-services/services/auth-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+iac/k8s/cluster-services/services/mining-gateway-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+backend/nct/nct.py
+  s_81727a6d7893d1::t_a154a172cc7396 45-53
+  s_81727a6d7893d1::t_0e9ba4407a73d8 20
+  s_81727a6d7893d1::t_2ba71be96772cc 12
+iac/k8s/cluster-services/services/transaction-api-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+backend/status-api/src/app.js
+  s_81727a6d7893d1::t_fa1b2e74a32bcd 66-80
+iac/local/docker-compose.yml
+  s_81727a6d7893d1::t_7bdc3a6f62a258 39-97
+iac/k8s/cluster-services/services/access-control-hpa.yaml
+  s_81727a6d7893d1::t_3747d831a3572c 11
+iac/k8s/cluster-services/services/transaction-api-hpa.yaml
+  s_81727a6d7893d1::t_3747d831a3572c 11
+iac/k8s/cluster-services/services/access-control-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+backend/event-registry/src/lib/redis.js
+  s_81727a6d7893d1::t_8ced56b41b2dca 5-20
+backend/transaction-api/src/lib/redis.js
+  s_81727a6d7893d1::t_1e31ed59dacffd 5-20
+iac/k8s/cluster-services/services/frontend-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+iac/k8s/cluster-services/infrastructure/redis-deployment.yaml
+  s_81727a6d7893d1::t_8d5351de9048f5 1-44,46,48,51-57,60,62,65,70,75,77-84,88-94,113,119,123-168
+  s_81727a6d7893d1::t_e65a489578da7e 98,100-108
+backend/access-control/src/lib/redis.js
+  s_81727a6d7893d1::t_687f46a4ce3831 5-20
+iac/k8s/cluster-services/services/event-registry-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+iac/k8s/cluster-services/config/configmap.yaml
+  s_81727a6d7893d1::t_68d9f564609ab7 8
+iac/k8s/cluster-services/services/status-api-deployment.yaml
+  s_81727a6d7893d1::t_75107d74546b8e 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "034edad72ffca7afe4dd2e1b12316cd636e5abd6",
+  "prompts": {},
+  "sessions": {
+    "s_81727a6d7893d1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f1b312bb-ad9d-46e7-9e5c-d9613c141f4c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
