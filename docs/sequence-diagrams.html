@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TicketChain — Diagramas de Secuencia</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --sidebar-bg: #161b22;
+      --sidebar-border: #21262d;
+      --accent: #58a6ff;
+      --accent-hover: #79c0ff;
+      --text: #c9d1d9;
+      --text-muted: #8b949e;
+      --text-head: #f0f6fc;
+      --active-bg: #1f3550;
+      --active-border: #388bfd;
+      --card-bg: #161b22;
+      --card-border: #21262d;
+      --tag-bg: #21262d;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: 280px;
+      min-width: 240px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--sidebar-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-header {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+
+    #sidebar-header h1 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-head);
+      letter-spacing: -0.01em;
+    }
+
+    #sidebar-header p {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 3px;
+    }
+
+    #sidebar-search {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--sidebar-border);
+    }
+
+    #sidebar-search input {
+      width: 100%;
+      background: #0d1117;
+      border: 1px solid var(--sidebar-border);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #sidebar-search input:focus { border-color: var(--accent); }
+    #sidebar-search input::placeholder { color: var(--text-muted); }
+
+    #nav {
+      overflow-y: auto;
+      flex: 1;
+      padding: 8px 0;
+    }
+
+    .nav-section {
+      padding: 6px 14px 2px;
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background 0.12s, border-color 0.12s;
+      font-size: 0.82rem;
+      color: var(--text);
+      user-select: none;
+    }
+
+    .nav-item:hover { background: rgba(88,166,255,0.06); }
+
+    .nav-item.active {
+      background: var(--active-bg);
+      border-left-color: var(--active-border);
+      color: var(--accent-hover);
+    }
+
+    .nav-icon {
+      font-size: 1rem;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .nav-label { flex: 1; line-height: 1.3; }
+
+    /* ── Main ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #content {
+      flex: 1;
+      padding: 32px 40px 60px;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .diagram-section { display: none; }
+    .diagram-section.active { display: block; }
+
+    .section-header {
+      margin-bottom: 28px;
+    }
+
+    .section-header h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-head);
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-header .icon { font-size: 1.4rem; }
+
+    .section-header p {
+      margin-top: 8px;
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 680px;
+      line-height: 1.6;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      background: var(--tag-bg);
+      border: 1px solid var(--sidebar-border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      font-family: "SFMono-Regular", Consolas, monospace;
+    }
+
+    .diagram-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 28px;
+    }
+
+    .diagram-card-title {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: #0d1117;
+      letter-spacing: 0.02em;
+    }
+
+    .diagram-card-body {
+      padding: 24px 18px;
+      overflow-x: auto;
+    }
+
+    .diagram-card-body .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Mermaid theme overrides */
+    .mermaid svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* ── Redis Model ── */
+    .redis-grid { display: flex; flex-direction: column; gap: 20px; }
+
+    .redis-namespace {
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .redis-ns-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #0d1117;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--text-head);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .ns-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .redis-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+
+    .redis-table th {
+      padding: 7px 16px;
+      text-align: left;
+      background: #161b22;
+      color: var(--text-muted);
+      font-size: 0.67rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .redis-table td {
+      padding: 9px 16px;
+      border-bottom: 1px solid #1c2128;
+      vertical-align: middle;
+      line-height: 1.5;
+    }
+
+    .redis-table tr:last-child td { border-bottom: none; }
+    .redis-table tr:hover td { background: rgba(88,166,255,0.035); }
+
+    .rkey {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.73rem;
+      color: #e6edf3;
+      white-space: nowrap;
+    }
+
+    .rkey .rp { color: #d2a8ff; }
+
+    .type-badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 0.62rem;
+      font-weight: 700;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: nowrap;
+    }
+
+    .t-str  { background: #102a46; color: #79c0ff; border: 1px solid #1f5a8f; }
+    .t-list { background: #0e2d1a; color: #56d364; border: 1px solid #1d6631; }
+    .t-hash { background: #2e1e08; color: #ffa657; border: 1px solid #7d4e15; }
+    .t-set  { background: #1e0e33; color: #d2a8ff; border: 1px solid #6e40c9; }
+
+    .rdesc { color: var(--text); font-size: 0.75rem; }
+
+    .rval {
+      display: inline-block;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.66rem;
+      color: #a5d6ff;
+      background: #0d1117;
+      padding: 2px 7px;
+      border-radius: 4px;
+      border: 1px solid #21262d;
+      margin-top: 3px;
+      word-break: break-all;
+    }
+
+    .ttl-none { color: var(--text-muted); font-size: 0.71rem; }
+
+    .ttl-badge {
+      display: inline-block;
+      background: #2d1b00;
+      color: #e3b341;
+      border: 1px solid #7d5400;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    /* ── Blockchain Blocks ── */
+    .chain-container { overflow-x: auto; padding-bottom: 8px; }
+
+    .chain-row {
+      display: flex;
+      align-items: center;
+      min-width: max-content;
+      padding: 8px 0;
+    }
+
+    .block-card {
+      width: 216px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      font-size: 0.7rem;
+    }
+
+    .block-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid #21262d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .bh-genesis { background: linear-gradient(135deg, #0d2318, #122c1e); border-bottom-color: #3fb950; }
+    .bh-tx      { background: linear-gradient(135deg, #0d1f3c, #11253e); border-bottom-color: #1f4880; }
+
+    .block-num { font-weight: 700; font-size: 0.78rem; color: #f0f6fc; }
+
+    .block-type-tag {
+      font-size: 0.58rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 0.04em;
+    }
+
+    .btt-genesis { background: rgba(56,212,109,0.12); color: #56d364; border: 1px solid rgba(56,212,109,0.25); }
+    .btt-tx      { background: rgba(56,139,253,0.12); color: #79c0ff; border: 1px solid rgba(56,139,253,0.25); }
+
+    .block-body { padding: 10px 12px; }
+
+    .bf { margin-bottom: 8px; }
+    .bf:last-child { margin-bottom: 0; }
+
+    .bf-label {
+      font-size: 0.57rem;
+      color: #6e7681;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .bf-val {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.64rem;
+      color: #c9d1d9;
+      word-break: break-all;
+      line-height: 1.5;
+    }
+
+    /* colores de hash — c0=génesis, c1..c4=bloques tx */
+    .c0    { color: #56d364; }
+    .c1    { color: #79c0ff; }
+    .c2    { color: #ffa657; }
+    .c3    { color: #d2a8ff; }
+    .c4    { color: #e3b341; }
+    .czero { color: #30363d; }
+
+    .txs-list { display: flex; flex-direction: column; gap: 3px; }
+
+    .tx-row {
+      background: #161b22;
+      border: 1px solid #21262d;
+      border-radius: 4px;
+      padding: 4px 7px;
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.59rem;
+      line-height: 1.6;
+    }
+
+    .tb  { color: #56d364; font-weight: 600; }
+    .tr2 { color: #ffa657; font-weight: 600; }
+    .td2 { color: #8b949e; }
+    .tx-none { color: #484f58; font-style: italic; font-size: 0.63rem; }
+
+    .block-connector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      flex-shrink: 0;
+      padding: 0 4px;
+      gap: 3px;
+      align-self: stretch;
+    }
+
+    .conn-arrow-wrap {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 2px;
+    }
+
+    .conn-line {
+      flex: 1;
+      height: 1.5px;
+      border-radius: 1px;
+    }
+
+    .conn-label {
+      font-size: 0.53rem;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .chain-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: #0d1117;
+      border: 1px solid #21262d;
+      border-radius: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Syntax highlight pre block */
+    .code-block {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.75rem;
+      color: #c9d1d9;
+      line-height: 1.7;
+      overflow-x: auto;
+      margin: 0;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+    /* Welcome screen */
+    #welcome {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      text-align: center;
+      gap: 14px;
+      color: var(--text-muted);
+    }
+
+    #welcome .big-icon { font-size: 3.5rem; }
+    #welcome h3 { font-size: 1.1rem; color: var(--text); font-weight: 600; }
+    #welcome p { font-size: 0.85rem; max-width: 360px; line-height: 1.6; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside id="sidebar">
+  <div id="sidebar-header">
+    <h1>⛓ TicketChain</h1>
+    <p>Diagramas de Secuencia</p>
+  </div>
+
+  <div id="sidebar-search">
+    <input type="text" id="search-input" placeholder="Buscar diagrama…" />
+  </div>
+
+  <nav id="nav">
+    <div class="nav-section">Identidad</div>
+    <div class="nav-item" data-target="register">
+      <span class="nav-icon">📝</span>
+      <span class="nav-label">Registro de usuario</span>
+    </div>
+    <div class="nav-item" data-target="login">
+      <span class="nav-icon">🔐</span>
+      <span class="nav-label">Login / Autenticación</span>
+    </div>
+
+    <div class="nav-section">Eventos</div>
+    <div class="nav-item" data-target="create-event">
+      <span class="nav-icon">🎪</span>
+      <span class="nav-label">Crear evento (admin)</span>
+    </div>
+    <div class="nav-item" data-target="browse-events">
+      <span class="nav-icon">🔍</span>
+      <span class="nav-label">Explorar eventos</span>
+    </div>
+
+    <div class="nav-section">Entradas</div>
+    <div class="nav-item" data-target="buy-ticket">
+      <span class="nav-icon">🎟️</span>
+      <span class="nav-label">Compra de entrada</span>
+    </div>
+    <div class="nav-item" data-target="cancel-checkout">
+      <span class="nav-icon">❌</span>
+      <span class="nav-label">Cancelar checkout</span>
+    </div>
+
+    <div class="nav-section">Reventa</div>
+    <div class="nav-item" data-target="list-resale">
+      <span class="nav-icon">🏷️</span>
+      <span class="nav-label">Publicar en reventa</span>
+    </div>
+    <div class="nav-item" data-target="buy-listed">
+      <span class="nav-icon">♻️</span>
+      <span class="nav-label">Comprar entrada revendida</span>
+    </div>
+    <div class="nav-item" data-target="direct-transfer">
+      <span class="nav-icon">↔️</span>
+      <span class="nav-label">Transferencia directa</span>
+    </div>
+
+    <div class="nav-section">Control de acceso</div>
+    <div class="nav-item" data-target="qr-generate">
+      <span class="nav-icon">📱</span>
+      <span class="nav-label">Generar QR</span>
+    </div>
+    <div class="nav-item" data-target="qr-scan">
+      <span class="nav-icon">📷</span>
+      <span class="nav-label">Escanear QR</span>
+    </div>
+
+    <div class="nav-section">Blockchain</div>
+    <div class="nav-item" data-target="mining">
+      <span class="nav-icon">⛏️</span>
+      <span class="nav-label">Ciclo de minería</span>
+    </div>
+    <div class="nav-item" data-target="blockchain-full">
+      <span class="nav-icon">🔗</span>
+      <span class="nav-label">Flujo completo blockchain</span>
+    </div>
+    <div class="nav-item" data-target="blockchain-blocks">
+      <span class="nav-icon">📦</span>
+      <span class="nav-label">Estructura de bloques</span>
+    </div>
+
+    <div class="nav-section">Modelo de Datos</div>
+    <div class="nav-item" data-target="redis-model">
+      <span class="nav-icon">🗄️</span>
+      <span class="nav-label">Modelo de datos Redis</span>
+    </div>
+  </nav>
+</aside>
+
+<!-- ── Main content ── -->
+<main id="main">
+  <div id="content">
+
+    <!-- Welcome -->
+    <div id="welcome">
+      <div class="big-icon">⛓</div>
+      <h3>Diagramas de Secuencia — TicketChain</h3>
+      <p>Seleccioná un flujo del menú lateral para visualizar su diagrama de secuencia.</p>
+    </div>
+
+    <!-- ── REGISTER ── -->
+    <div class="diagram-section" id="sec-register">
+      <div class="section-header">
+        <h2><span class="icon">📝</span> Registro de usuario</h2>
+        <p>Un usuario nuevo envía email y contraseña. El sistema valida, hashea la contraseña con bcrypt, genera una wallet address derivada del ID, persiste en PostgreSQL y devuelve un JWT.</p>
+        <div class="tags">
+          <span class="tag">POST /auth/register</span>
+          <span class="tag">auth-service</span>
+          <span class="tag">PostgreSQL</span>
+          <span class="tag">bcrypt</span>
+          <span class="tag">JWT</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant FE as Frontend<br/>(React)
+  participant GW as Nginx<br/>(API Gateway)
+  participant AS as Auth Service<br/>(:3001)
+  participant PG as PostgreSQL
+
+  U->>FE: Completa formulario de registro
+  FE->>GW: POST /api/auth/register<br/>{email, password}
+  GW->>AS: Rutea solicitud
+
+  AS->>AS: Valida formato email
+  AS->>AS: Valida password ≥ 8 chars
+
+  AS->>PG: SELECT * FROM users WHERE email = ?
+  PG-->>AS: Sin resultados
+
+  AS->>AS: bcrypt.hash(password, 12)
+  AS->>AS: Genera UUID → wallet_address =<br/>SHA256(uuid).slice(0,8)
+
+  AS->>PG: INSERT INTO users<br/>(id, email, password_hash, role, wallet_address)
+  PG-->>AS: OK
+
+  AS->>AS: jwt.sign({sub, email, role,<br/>wallet_address}, secret, 24h)
+  AS-->>GW: 201 {token, user}
+  GW-->>FE: 201 {token, user}
+  FE->>FE: localStorage.setItem('token')
+  FE-->>U: Redirige a /events
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LOGIN ── -->
+    <div class="diagram-section" id="sec-login">
+      <div class="section-header">
+        <h2><span class="icon">🔐</span> Login / Autenticación</h2>
+        <p>El usuario envía credenciales. El sistema verifica la contraseña con bcrypt, emite un JWT de 24 horas y el frontend lo almacena en localStorage para usarlo en cabeceras Authorization.</p>
+        <div class="tags">
+          <span class="tag">POST /auth/login</span>
+          <span class="tag">auth-service</span>
+          <span class="tag">PostgreSQL</span>
+          <span class="tag">JWT Bearer</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant FE as Frontend
+  participant GW as Nginx
+  participant AS as Auth Service
+  participant PG as PostgreSQL
+
+  U->>FE: Ingresa email + password
+  FE->>GW: POST /api/auth/login<br/>{email, password}
+  GW->>AS: Rutea solicitud
+
+  AS->>PG: SELECT * FROM users<br/>WHERE email = ?
+  PG-->>AS: {id, email, password_hash, role, wallet_address}
+
+  alt Usuario no encontrado
+    AS-->>FE: 401 Credenciales inválidas
+  else Usuario encontrado
+    AS->>AS: bcrypt.compare(password, hash)
+    alt Contraseña incorrecta
+      AS-->>FE: 401 Credenciales inválidas
+    else Contraseña correcta
+      AS->>AS: jwt.sign({sub, email, role,<br/>wallet_address}, secret, {expiresIn: 24h})
+      AS-->>GW: 200 {token, user}
+      GW-->>FE: 200 {token, user}
+      FE->>FE: Guarda token en localStorage<br/>Actualiza AuthContext
+      FE-->>U: Redirige a /events
+    end
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CREATE EVENT ── -->
+    <div class="diagram-section" id="sec-create-event">
+      <div class="section-header">
+        <h2><span class="icon">🎪</span> Crear evento (admin)</h2>
+        <p>Solo administradores pueden crear eventos. El sistema valida los datos, crea el bloque génesis de la blockchain del evento, inicializa todos los tickets en Redis y los encola en el pool de disponibles.</p>
+        <div class="tags">
+          <span class="tag">POST /api/events</span>
+          <span class="tag">event-registry</span>
+          <span class="tag">Redis</span>
+          <span class="tag">genesis block</span>
+          <span class="tag">MinIO</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor A as Admin
+  participant FE as Frontend
+  participant GW as Nginx
+  participant ER as Event Registry<br/>(:3002)
+  participant MW as Middleware<br/>requireAdmin
+  participant RD as Redis
+  participant MN as MinIO
+
+  A->>FE: Completa formulario de nuevo evento<br/>(nombre, fecha, venue, tickets, precio, reglas, imagen)
+  FE->>GW: POST /api/events<br/>Authorization: Bearer {adminToken}
+  GW->>ER: Rutea solicitud
+  ER->>MW: Verifica JWT
+  MW->>MW: jwt.verify(token)<br/>Chequea role === admin
+
+  alt No es admin
+    MW-->>FE: 403 Forbidden
+  else Es admin
+    ER->>ER: Valida campos obligatorios<br/>(nombre, fecha, venue, tickets, precio, reglas)
+
+    opt Imagen incluida
+      ER->>MN: uploadImage(buffer, hash)
+      MN-->>ER: image_url
+    end
+
+    ER->>ER: Crea bloque génesis<br/>{index:0, prev_hash:"000...0",<br/>nonce:0, txs:[], block_type:"genesis",<br/>rules, event_id, name, total_tickets, price}
+    ER->>ER: genesis_hash = SHA256(JSON.stringify(genesis))
+
+    ER->>RD: SET event:{event_id} → event JSON
+    ER->>RD: LPUSH events:list event_id
+    ER->>RD: SET event:{event_id}:available_tickets N
+
+    loop Por cada ticket T000001..T00000N (en batches de 1000)
+      ER->>RD: pipeline:<br/>SET ticket:{eid}:{tid}:owner "null"<br/>SET ticket:{eid}:{tid}:resales "0"<br/>RPUSH event:{eid}:tickets:pool tid
+    end
+
+    ER->>RD: RPUSH blockchain:{event_id} genesis_json
+
+    ER-->>GW: 201 {id, name, genesis_block_hash, …}
+    GW-->>FE: 201 {evento creado}
+    FE-->>A: Muestra evento publicado
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BROWSE EVENTS ── -->
+    <div class="diagram-section" id="sec-browse-events">
+      <div class="section-header">
+        <h2><span class="icon">🔍</span> Explorar eventos</h2>
+        <p>Cualquier usuario autenticado puede listar los eventos activos. El sistema lee de Redis el índice de IDs y luego cada objeto de evento.</p>
+        <div class="tags">
+          <span class="tag">GET /api/events</span>
+          <span class="tag">event-registry</span>
+          <span class="tag">Redis</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant FE as Frontend
+  participant GW as Nginx
+  participant ER as Event Registry
+  participant RD as Redis
+
+  U->>FE: Navega a /events
+  FE->>GW: GET /api/events<br/>Authorization: Bearer {token}
+  GW->>ER: Rutea solicitud
+
+  ER->>RD: LRANGE events:list 0 -1
+  RD-->>ER: [event_id_1, event_id_2, …]
+
+  loop Por cada event_id
+    ER->>RD: GET event:{event_id}
+    RD-->>ER: event JSON
+    ER->>RD: GET event:{event_id}:available_tickets
+    RD-->>ER: count
+  end
+
+  ER-->>GW: 200 [{eventos con available_tickets}]
+  GW-->>FE: 200 lista de eventos
+  FE-->>U: Renderiza cards de eventos
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BUY TICKET ── -->
+    <div class="diagram-section" id="sec-buy-ticket">
+      <div class="section-header">
+        <h2><span class="icon">🎟️</span> Compra de entrada (venta primaria)</h2>
+        <p>El flujo de compra tiene dos fases: primero se reserva el ticket con un TTL de 15 minutos, luego el usuario confirma el pago en el checkout. Si el evento es "nominada", solo se permite una entrada por usuario.</p>
+        <div class="tags">
+          <span class="tag">POST /transactions/buy</span>
+          <span class="tag">POST /transactions/checkout/confirm</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+          <span class="tag">RabbitMQ</span>
+          <span class="tag">TTL 900s</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Fase 1 — Reserva del ticket</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant FE as Frontend
+  participant GW as Nginx
+  participant TX as Transaction API<br/>(:3003)
+  participant RD as Redis
+
+  U->>FE: Click "Comprar" en evento
+  FE->>GW: POST /api/transactions/buy<br/>{event_id}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GET event:{event_id}
+  RD-->>TX: event JSON
+
+  alt Evento no existe
+    TX-->>FE: 404 Evento no encontrado
+  else Evento suspendido / completado / pasado
+    TX-->>FE: 409 Evento no disponible
+  else Evento activo
+    opt Evento nominado (rules.nominada = true)
+      TX->>RD: SMEMBERS user:{wallet}:tickets
+      RD-->>TX: set de tickets del usuario
+      TX->>TX: Verifica si ya tiene ticket<br/>de este evento
+      alt Ya tiene ticket nominado
+        TX-->>FE: 409 Ya tenés una entrada para este evento
+      end
+    end
+
+    TX->>RD: LPOP event:{event_id}:tickets:pool
+    RD-->>TX: ticket_id (ej. T000042)
+
+    TX->>RD: SET ticket:{eid}:{tid}:owner "pending_payment" EX 900
+    TX->>RD: SET pending_tx:{tx_id} {tx JSON} EX 900
+
+    TX-->>GW: 200 {tx_id, ticket_id, event_id,<br/>event_name, price, status:"pending_payment"}
+    GW-->>FE: 200 respuesta
+    FE->>FE: Abre ventana /checkout<br/>?tx_id=…&ticket_id=…&price=…
+  end
+          </div>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Fase 2 — Confirmación del checkout</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant CK as Ventana Checkout
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+  participant MQ as RabbitMQ
+
+  U->>CK: Confirma pago ("Pagar")
+  CK->>GW: POST /api/transactions/checkout/confirm<br/>{tx_id}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GETDEL pending_tx:{tx_id}
+  RD-->>TX: pending tx JSON (o null si expiró)
+
+  alt TTL expirado / no existe
+    TX-->>CK: 409 Transacción expirada o no encontrada
+  else Wallet no coincide
+    TX-->>CK: 403 No autorizado
+  else OK
+    TX->>RD: SET ticket:{eid}:{tid}:owner {wallet_address}
+    TX->>RD: SADD user:{wallet}:tickets "{eid}:{tid}"
+    TX->>RD: DECR event:{eid}:available_tickets
+    TX->>RD: RPUSH txpool:{event_id} {tx JSON}
+    TX->>MQ: publish(exchange:transactions,<br/>routing_key:tx.new, tx JSON)
+
+    TX-->>GW: 200 {tx_id, ticket_id, status:"confirmed"}
+    GW-->>CK: 200 confirmado
+    CK->>CK: Cierra ventana
+    CK-->>U: Redirige a /events/{event_id}?success=true
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CANCEL CHECKOUT ── -->
+    <div class="diagram-section" id="sec-cancel-checkout">
+      <div class="section-header">
+        <h2><span class="icon">❌</span> Cancelar checkout</h2>
+        <p>Si el usuario cierra la ventana o cancela el pago, el ticket reservado vuelve al pool de disponibles y se restaura el contador de entradas.</p>
+        <div class="tags">
+          <span class="tag">DELETE /transactions/checkout/:tx_id</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant CK as Ventana Checkout
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+
+  U->>CK: Cancela / cierra la ventana
+  CK->>GW: DELETE /api/transactions/checkout/{tx_id}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GETDEL pending_tx:{tx_id}
+  RD-->>TX: pending tx (o null si ya expiró)
+
+  alt Ya expiró (TTL venció)
+    TX-->>CK: 200 (ya liberado por TTL)
+  else Cancela compra primaria
+    TX->>RD: SET ticket:{eid}:{tid}:owner "null"
+    TX->>RD: LPUSH event:{eid}:tickets:pool ticket_id
+    TX->>RD: INCR event:{eid}:available_tickets
+    TX-->>CK: 200 {status: "cancelled"}
+  else Cancela compra de reventa
+    TX->>RD: SET ticket:{eid}:{tid}:owner {seller_wallet}
+    TX->>RD: HSET event:{eid}:listings ticket_id {listing JSON}
+    TX-->>CK: 200 {status: "cancelled"}
+  end
+
+  CK-->>U: Cierra / redirige
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LIST RESALE ── -->
+    <div class="diagram-section" id="sec-list-resale">
+      <div class="section-header">
+        <h2><span class="icon">🏷️</span> Publicar entrada en reventa</h2>
+        <p>El dueño de un ticket puede publicarlo en el mercado secundario respetando las reglas del evento: precio máximo, límite de reventas, ventana de tiempo y si la entrada es nominada (en ese caso la reventa está prohibida).</p>
+        <div class="tags">
+          <span class="tag">POST /transactions/list</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+          <span class="tag">reglas de reventa</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor V as Vendedor
+  participant FE as Frontend
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+
+  V->>FE: Solicita publicar ticket en reventa<br/>(en "Mis Entradas")
+  FE->>GW: POST /api/transactions/list<br/>{event_id, ticket_id, price}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GET event:{event_id}
+  RD-->>TX: event JSON con rules
+
+  alt Evento suspendido / completado / pasado
+    TX-->>FE: 409 Evento no disponible
+  else Entrada nominada
+    TX-->>FE: 409 Las entradas nominadas no se pueden revender
+  else
+    TX->>RD: GET ticket:{eid}:{tid}:owner
+    RD-->>TX: owner wallet
+
+    alt Vendedor no es el dueño
+      TX-->>FE: 403 No sos el dueño del ticket
+    else
+      TX->>RD: GET ticket:{eid}:{tid}:resales
+      RD-->>TX: resale_count
+
+      alt Supera max_reventas
+        TX-->>FE: 409 Límite de reventas alcanzado
+      else
+        TX->>TX: Verifica precio ≤ event.price * (1 + rules.precio_max/100)
+        alt Precio fuera de rango
+          TX-->>FE: 400 Precio supera el máximo permitido
+        else
+          TX->>TX: Verifica now < event.date - ventana_venta*3600*1000
+          alt Fuera de ventana de venta
+            TX-->>FE: 409 Fuera del período de reventa
+          else
+            TX->>RD: HGET event:{eid}:listings ticket_id
+            alt Ya está listado
+              TX-->>FE: 409 Ya publicada
+            else
+              TX->>RD: HSET event:{eid}:listings ticket_id<br/>{seller_wallet, price, listed_at, resale_count}
+              TX-->>FE: 200 {ticket_id, price, status:"listed"}
+              FE-->>V: Ticket publicado en reventa
+            end
+          end
+        end
+      end
+    end
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BUY LISTED ── -->
+    <div class="diagram-section" id="sec-buy-listed">
+      <div class="section-header">
+        <h2><span class="icon">♻️</span> Comprar entrada revendida</h2>
+        <p>Un comprador adquiere una entrada listada en el mercado secundario. El flujo es similar a la compra primaria: reserva con TTL y luego confirmación en checkout.</p>
+        <div class="tags">
+          <span class="tag">POST /transactions/buy-listed</span>
+          <span class="tag">POST /transactions/checkout/confirm</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+          <span class="tag">RabbitMQ</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Comprador
+  participant FE as Frontend
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+  participant MQ as RabbitMQ
+
+  C->>FE: Selecciona ticket en listado de reventa
+  FE->>GW: POST /api/transactions/buy-listed<br/>{event_id, ticket_id}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GET event:{event_id}
+  RD-->>TX: event JSON
+
+  TX->>RD: HGET event:{eid}:listings ticket_id
+  RD-->>TX: listing JSON (o null)
+
+  alt Listing no encontrado
+    TX-->>FE: 404 Listing no disponible
+  else Comprador es el mismo vendedor
+    TX-->>FE: 400 No podés comprar tu propio ticket
+  else OK
+    TX->>RD: SET ticket:{eid}:{tid}:owner "pending_payment" EX 900
+    TX->>RD: HDEL event:{eid}:listings ticket_id
+    TX->>RD: SET pending_tx:{tx_id}<br/>{type:"resell", event_id, ticket_id,<br/>wallet_address, seller_wallet, price,<br/>resale_count} EX 900
+
+    TX-->>GW: 200 {tx_id, ticket_id, price, status:"pending_payment"}
+    GW-->>FE: 200 respuesta
+    FE->>FE: Abre ventana /checkout
+
+    Note over C,MQ: El comprador confirma el pago (misma lógica que compra primaria)
+
+    C->>FE: Confirma pago
+    FE->>GW: POST /api/transactions/checkout/confirm {tx_id}
+    GW->>TX: Rutea
+
+    TX->>RD: GETDEL pending_tx:{tx_id}
+    TX->>RD: SET ticket:{eid}:{tid}:owner {buyer_wallet}
+    TX->>RD: SREM user:{seller_wallet}:tickets "{eid}:{tid}"
+    TX->>RD: SADD user:{buyer_wallet}:tickets "{eid}:{tid}"
+    TX->>RD: INCR ticket:{eid}:{tid}:resales
+    TX->>RD: DEL ticket:{eid}:{tid}:qr_secret
+    TX->>RD: RPUSH txpool:{event_id} {tx JSON}
+    TX->>MQ: publish(exchange:transactions, tx.new)
+
+    TX-->>FE: 200 {status:"confirmed"}
+    FE-->>C: Ticket adquirido exitosamente
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DIRECT TRANSFER ── -->
+    <div class="diagram-section" id="sec-direct-transfer">
+      <div class="section-header">
+        <h2><span class="icon">↔️</span> Transferencia directa entre wallets</h2>
+        <p>El dueño transfiere directamente su ticket a una wallet conocida. No hay checkout: la transferencia es inmediata y se publica directo a la blockchain.</p>
+        <div class="tags">
+          <span class="tag">POST /transactions/resell</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+          <span class="tag">RabbitMQ</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor V as Vendedor
+  participant FE as Frontend
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+  participant MQ as RabbitMQ
+
+  V->>FE: Ingresa wallet destino + precio de transferencia
+  FE->>GW: POST /api/transactions/resell<br/>{event_id, ticket_id, price, to_wallet}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>TX: Valida formato to_wallet:<br/>regex /^0x[0-9a-f]{8}$/
+
+  TX->>RD: GET event:{event_id}
+  RD-->>TX: event JSON
+
+  Note over TX: Mismas verificaciones que al listar:<br/>nominada, max_reventas, precio, ventana
+
+  TX->>RD: GET ticket:{eid}:{tid}:owner
+  RD-->>TX: current owner
+
+  alt No es el dueño
+    TX-->>FE: 403 No autorizado
+  else Todas las reglas OK
+    TX->>RD: SET ticket:{eid}:{tid}:owner {to_wallet}
+    TX->>RD: INCR ticket:{eid}:{tid}:resales
+    TX->>RD: DEL ticket:{eid}:{tid}:qr_secret
+    TX->>RD: SREM user:{from_wallet}:tickets "{eid}:{tid}"
+    TX->>RD: SADD user:{to_wallet}:tickets "{eid}:{tid}"
+    TX->>RD: RPUSH txpool:{event_id} {tx JSON}
+    TX->>MQ: publish(exchange:transactions,<br/>routing_key:tx.new, tx JSON)
+    TX-->>FE: 200 {tx_id, status:"pending"}
+    FE-->>V: Transferencia completada
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── QR GENERATE ── -->
+    <div class="diagram-section" id="sec-qr-generate">
+      <div class="section-header">
+        <h2><span class="icon">📱</span> Generar código QR</h2>
+        <p>El titular del ticket solicita su QR para ingresar al evento. Se genera un JWT de corta duración (60 segundos) firmado con un secreto único del ticket. El frontend auto-refresca el QR cada 30 segundos.</p>
+        <div class="tags">
+          <span class="tag">GET /transactions/qr-token/:event_id/:ticket_id</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">Redis</span>
+          <span class="tag">JWT 60s</span>
+          <span class="tag">QRCode library</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Titular del ticket
+  participant FE as Frontend
+  participant GW as Nginx
+  participant TX as Transaction API
+  participant RD as Redis
+
+  U->>FE: Abre "Mis Entradas" → "Mostrar QR"
+  FE->>GW: GET /api/transactions/qr-token/{event_id}/{ticket_id}<br/>Authorization: Bearer {token}
+  GW->>TX: Rutea solicitud
+
+  TX->>RD: GET ticket:{eid}:{tid}:owner
+  RD-->>TX: owner_wallet
+
+  alt No es el dueño
+    TX-->>FE: 403 No autorizado
+  else Es el dueño
+    TX->>RD: GET ticket:{eid}:{tid}:qr_secret
+    RD-->>TX: secret (o null)
+
+    alt No existe secret
+      TX->>TX: crypto.randomBytes(32).toString('hex')
+      TX->>RD: SET ticket:{eid}:{tid}:qr_secret {secret}
+      RD-->>TX: OK
+    end
+
+    TX->>TX: jwt.sign({event_id, ticket_id, wallet},<br/>secret, {expiresIn: 60})
+
+    TX->>TX: Genera URL:<br/>"{origin}/scan?token={jwt}"
+    TX->>TX: QRCode.toDataURL(url)
+
+    TX-->>FE: 200 {token, qr_image (base64), expires_at}
+    FE-->>U: Muestra QR en pantalla
+
+    loop Auto-refresh cada 30s
+      FE->>GW: GET /api/transactions/qr-token/…
+      GW->>TX: Nueva solicitud
+      TX->>TX: Nuevo JWT con mismo secret
+      TX-->>FE: 200 nuevo token
+      FE-->>U: QR actualizado
+    end
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── QR SCAN ── -->
+    <div class="diagram-section" id="sec-qr-scan">
+      <div class="section-header">
+        <h2><span class="icon">📷</span> Escanear QR (control de acceso)</h2>
+        <p>El scanner lee el QR del asistente. El sistema verifica la firma del JWT con el secreto único del ticket, valida que el titular sea el dueño actual y que no haya ingresado antes (anti-replay).</p>
+        <div class="tags">
+          <span class="tag">POST /access/scan</span>
+          <span class="tag">access-control</span>
+          <span class="tag">Redis</span>
+          <span class="tag">JWT verify</span>
+          <span class="tag">anti-replay</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor SC as Scanner (staff)
+  participant APP as App Scanner<br/>(Browser)
+  participant GW as Nginx
+  participant AC as Access Control<br/>(:3004)
+  participant RD as Redis
+
+  SC->>APP: Escanea QR del asistente
+  APP->>GW: POST /api/access/scan<br/>{token: "eyJhbGci…"}
+  GW->>AC: Rutea solicitud
+
+  AC->>AC: jwt.decode(token, {complete:true})<br/>(sin verificar todavía)<br/>Extrae: event_id, ticket_id, wallet
+
+  AC->>RD: GET event:{event_id}
+  RD-->>AC: event JSON
+
+  alt Evento no existe
+    AC-->>APP: 404 Evento no encontrado
+  else
+    AC->>RD: GET ticket:{eid}:{tid}:qr_secret
+    RD-->>AC: secret
+
+    alt Secret no existe (ticket nunca generó QR)
+      AC-->>APP: 401 QR inválido
+    else
+      AC->>AC: jwt.verify(token, secret)<br/>Verifica firma + expiración
+
+      alt TokenExpiredError
+        AC-->>APP: 200 {valid:false,<br/>message:"QR expirado, pedile uno nuevo al titular"}
+      else JsonWebTokenError
+        AC-->>APP: 401 Token inválido
+      else JWT válido
+        AC->>RD: GET ticket:{eid}:{tid}:owner
+        RD-->>AC: current_owner
+
+        alt Dueño no coincide con wallet del token
+          AC-->>APP: 200 {valid:false,<br/>message:"Este ticket ya no pertenece al titular del QR"}
+        else Dueños coinciden
+          AC->>RD: GET ticket:{eid}:{tid}:checked_in
+          RD-->>AC: timestamp (o null)
+
+          alt Ya ingresó (checked_in existe)
+            AC-->>APP: 200 {valid:false,<br/>message:"Ticket ya ingresó (2026-06-26T20:15:30Z)",<br/>checked_in_at}
+          else Primera vez
+            AC->>RD: SET ticket:{eid}:{tid}:checked_in<br/>{ISO8601 timestamp}
+            AC-->>APP: 200 {valid:true,<br/>message:"Acceso concedido",<br/>ticket_id, event_name, wallet, checked_in_at}
+            APP-->>SC: ✅ Pantalla verde — ACCESO CONCEDIDO
+          end
+        end
+      end
+    end
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MINING ── -->
+    <div class="diagram-section" id="sec-mining">
+      <div class="section-header">
+        <h2><span class="icon">⛏️</span> Ciclo de minería de bloques</h2>
+        <p>El NCT (Node Coordinator) acumula transacciones confirmadas y forma candidatos de bloque. Las tareas de minería se distribuyen al cluster de minería via un gateway con mTLS. Los workers CPU/GPU resuelven el Proof of Work.</p>
+        <div class="tags">
+          <span class="tag">NCT</span>
+          <span class="tag">RabbitMQ</span>
+          <span class="tag">Mining Gateway</span>
+          <span class="tag">Transaction Pool</span>
+          <span class="tag">Worker CPU/GPU</span>
+          <span class="tag">Proof of Work</span>
+          <span class="tag">mTLS</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia — Formación de bloque y minería</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant MQ1 as RabbitMQ<br/>(cluster-services)
+  participant NCT as NCT<br/>(Node Coordinator)
+  participant RD as Redis
+  participant MG as Mining Gateway<br/>(:8000)
+  participant MQ2 as RabbitMQ<br/>(cluster-mining)
+  participant TRP as Transaction Pool
+  participant WK as Worker CPU/GPU
+
+  MQ1->>NCT: consume(queue:transactions_q)<br/>routing_key: tx.new
+
+  loop Acumula transacciones
+    NCT->>NCT: pending_txs.append(tx)<br/>(thread-safe con lock)
+
+    alt len(pending_txs) >= MAX_TX_PER_BLOCK (5)<br/>OR timer >= BLOCK_TIMEOUT (10s)
+      NCT->>NCT: Determina event_id dominante
+      NCT->>RD: LINDEX blockchain:{event_id} -1
+      RD-->>NCT: último bloque JSON
+      NCT->>RD: LLEN blockchain:{event_id}
+      RD-->>NCT: next_index
+
+      NCT->>NCT: Crea bloque candidato:<br/>{index, timestamp, previous_hash,<br/>nonce:0, transactions, block_type:"tx", event_id}
+
+      NCT->>MQ1: publish(exchange:mining,<br/>routing_key:task.global,<br/>{task_id, block_candidate, difficulty:3,<br/>nonce_range_start:0, nonce_range_total:10M})
+    end
+  end
+
+  loop Polling PULL-based (cada ~20s, mTLS)
+    TRP->>MG: GET /next-task
+    MG->>MQ1: consume(queue:mining_gateway_q)
+    MQ1-->>MG: task JSON (o vacío)
+    alt Hay tarea disponible
+      MG-->>TRP: 200 task JSON
+    else Sin tareas
+      MG-->>TRP: 204 No Content
+    end
+  end
+
+  TRP->>TRP: Divide rango de nonces<br/>entre workers disponibles
+  TRP->>MQ2: publish subtasks a workers<br/>(exchange:mining_tasks)
+
+  MQ2->>WK: subtask {task_id, block_candidate,<br/>nonce_start, nonce_end, difficulty}
+
+  loop Proof of Work
+    WK->>WK: hash = SHA256(block + nonce)
+    WK->>WK: nonce++
+    alt hash.startsWith('000') (difficulty=3)
+      WK->>MQ2: publish(exchange:nct_results,<br/>routing_key:nct.result,<br/>{task_id, found:true, block_with_hash})
+    end
+  end
+
+  MQ2->>NCT: consume(queue:nct_results_q)
+  NCT->>NCT: verify_block(block, difficulty)<br/>Valida hash y transacciones
+
+  alt Bloque inválido
+    NCT->>MQ2: NACK (no requeue)
+  else Bloque válido
+    NCT->>RD: RPUSH blockchain:{event_id} block_json
+    NCT->>RD: Actualiza owners en Redis<br/>(según txs del bloque)
+    NCT->>MQ2: ACK
+    NCT->>NCT: blocks_mined++
+  end
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BLOCKCHAIN FULL ── -->
+    <div class="diagram-section" id="sec-blockchain-full">
+      <div class="section-header">
+        <h2><span class="icon">🔗</span> Flujo completo — Compra → Blockchain</h2>
+        <p>Vista end-to-end de cómo una compra de entrada se refleja en la blockchain: desde el click del usuario hasta el bloque minado y persistido en Redis.</p>
+        <div class="tags">
+          <span class="tag">end-to-end</span>
+          <span class="tag">transaction-api</span>
+          <span class="tag">NCT</span>
+          <span class="tag">Mining Gateway</span>
+          <span class="tag">Worker</span>
+          <span class="tag">blockchain</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Diagrama de secuencia — Vista E2E</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor U as Usuario
+  participant FE as Frontend
+  participant TX as Transaction API
+  participant RD as Redis
+  participant MQ as RabbitMQ
+  participant NCT as NCT
+  participant MG as Mining Gateway
+  participant WK as Worker
+
+  U->>FE: Compra entrada
+  FE->>TX: POST /transactions/buy {event_id}
+  TX->>RD: Reserva ticket (TTL 900s)
+  TX-->>FE: {tx_id, pending_payment}
+
+  U->>FE: Confirma pago
+  FE->>TX: POST /transactions/checkout/confirm {tx_id}
+  TX->>RD: Confirma ownership<br/>Actualiza available_tickets
+  TX->>RD: RPUSH txpool:{event_id} tx_json
+  TX->>MQ: publish(tx.new)
+  TX-->>FE: {status: confirmed}
+  FE-->>U: ✅ Entrada confirmada
+
+  Note over MQ,NCT: La tx llega al NCT via RabbitMQ
+
+  MQ->>NCT: deliver tx JSON
+  NCT->>NCT: Acumula en pending_txs
+
+  alt Llega al threshold o timer
+    NCT->>RD: LINDEX blockchain:{eid} -1
+    RD-->>NCT: previous_hash
+    NCT->>NCT: Arma bloque candidato
+    NCT->>MQ: publish(task.global)
+  end
+
+  MG->>MQ: PULL /next-task (mTLS)
+  MQ-->>MG: mining task
+  MG-->>WK: subtask (via TrPool → RabbitMQ local)
+
+  WK->>WK: Proof of Work<br/>hash("000…") encontrado
+  WK->>MQ: publish(nct.result)
+
+  MQ->>NCT: deliver resultado
+  NCT->>NCT: verify_block
+  NCT->>RD: RPUSH blockchain:{eid} bloque_minado
+
+  Note over RD: ✅ Transacción inmutable<br/>en blockchain del evento
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ── BLOCKCHAIN BLOCKS ── -->
+    <div class="diagram-section" id="sec-blockchain-blocks">
+      <div class="section-header">
+        <h2><span class="icon">📦</span> Estructura de bloques — Blockchain</h2>
+        <p>Cada evento tiene su propia cadena almacenada en Redis como una <code style="font-family:monospace;color:#a5d6ff;">LIST</code>. El bloque génesis se crea junto al evento e incluye sus reglas. Los bloques de transacciones son minados con Proof of Work (dificultad 3). El color del campo <strong>hash</strong> de cada bloque coincide con el <strong>prev_hash</strong> del siguiente, evidenciando la cadena inmutable.</p>
+        <div class="tags">
+          <span class="tag">SHA-256</span>
+          <span class="tag">Proof of Work</span>
+          <span class="tag">dificultad 3</span>
+          <span class="tag">genesis block</span>
+          <span class="tag">hash chaining</span>
+          <span class="tag">inmutabilidad</span>
+        </div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-card-title">Cadena de 5 bloques — evento "Rolling Stones 2026" · event_id: a1b2c3d4-…</div>
+        <div class="diagram-card-body">
+          <div class="chain-container">
+            <div class="chain-row">
+
+              <!-- Block 0 — Genesis -->
+              <div class="block-card">
+                <div class="block-header bh-genesis">
+                  <span class="block-num">Bloque #0</span>
+                  <span class="block-type-tag btt-genesis">GENESIS</span>
+                </div>
+                <div class="block-body">
+                  <div class="bf">
+                    <div class="bf-label">timestamp</div>
+                    <div class="bf-val">2026-06-15T10:00:00Z</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">prev_hash</div>
+                    <div class="bf-val czero">0000000000000000</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">nonce</div>
+                    <div class="bf-val">0</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">reglas del evento</div>
+                    <div class="bf-val" style="color:#8b949e;">precio_max: 50%<br/>max_reventas: 3<br/>nominada: false<br/>ventana_venta: 24h</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">transacciones</div>
+                    <div class="bf-val tx-none">— ninguna (bloque génesis) —</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">hash (SHA-256)</div>
+                    <div class="bf-val c0">000a4f2e···8b1c3d9f</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connector 0→1 -->
+              <div class="block-connector">
+                <div class="conn-arrow-wrap">
+                  <div class="conn-line" style="background:#56d364;opacity:0.6;"></div>
+                  <span style="color:#56d364;font-size:0.9rem;">→</span>
+                </div>
+                <div class="conn-label" style="color:#56d364;">prev_hash</div>
+              </div>
+
+              <!-- Block 1 -->
+              <div class="block-card">
+                <div class="block-header bh-tx">
+                  <span class="block-num">Bloque #1</span>
+                  <span class="block-type-tag btt-tx">TX</span>
+                </div>
+                <div class="block-body">
+                  <div class="bf">
+                    <div class="bf-label">timestamp</div>
+                    <div class="bf-val">2026-06-15T14:22:08Z</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">prev_hash</div>
+                    <div class="bf-val c0">000a4f2e···8b1c3d9f</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">nonce</div>
+                    <div class="bf-val">28 471</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">transacciones (5)</div>
+                    <div class="txs-list">
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000042 → 0xab12ef34 · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000087 → 0xcc44ff11 · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000123 → 0x55ee99dd · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000156 → 0x11bb33cc · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000201 → 0xaa66ff44 · $15.000</span></div>
+                    </div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">hash (SHA-256)</div>
+                    <div class="bf-val c1">000b9e3f···d2a7c4b1</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connector 1→2 -->
+              <div class="block-connector">
+                <div class="conn-arrow-wrap">
+                  <div class="conn-line" style="background:#79c0ff;opacity:0.6;"></div>
+                  <span style="color:#79c0ff;font-size:0.9rem;">→</span>
+                </div>
+                <div class="conn-label" style="color:#79c0ff;">prev_hash</div>
+              </div>
+
+              <!-- Block 2 -->
+              <div class="block-card">
+                <div class="block-header bh-tx">
+                  <span class="block-num">Bloque #2</span>
+                  <span class="block-type-tag btt-tx">TX</span>
+                </div>
+                <div class="block-body">
+                  <div class="bf">
+                    <div class="bf-label">timestamp</div>
+                    <div class="bf-val">2026-06-16T09:45:33Z</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">prev_hash</div>
+                    <div class="bf-val c1">000b9e3f···d2a7c4b1</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">nonce</div>
+                    <div class="bf-val">51 823</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">transacciones (5)</div>
+                    <div class="txs-list">
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000302 → 0x77dd88ee · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000415 → 0x33ff55aa · $15.000</span></div>
+                      <div class="tx-row"><span class="tr2">RESELL</span> <span class="td2">T000042 → 0x77aa22bb · $18.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000521 → 0xee1199bb · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000634 → 0x44cc66dd · $15.000</span></div>
+                    </div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">hash (SHA-256)</div>
+                    <div class="bf-val c2">000c1d5a···e8f3b9c6</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connector 2→3 -->
+              <div class="block-connector">
+                <div class="conn-arrow-wrap">
+                  <div class="conn-line" style="background:#ffa657;opacity:0.6;"></div>
+                  <span style="color:#ffa657;font-size:0.9rem;">→</span>
+                </div>
+                <div class="conn-label" style="color:#ffa657;">prev_hash</div>
+              </div>
+
+              <!-- Block 3 -->
+              <div class="block-card">
+                <div class="block-header bh-tx">
+                  <span class="block-num">Bloque #3</span>
+                  <span class="block-type-tag btt-tx">TX</span>
+                </div>
+                <div class="block-body">
+                  <div class="bf">
+                    <div class="bf-label">timestamp</div>
+                    <div class="bf-val">2026-06-17T16:30:51Z</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">prev_hash</div>
+                    <div class="bf-val c2">000c1d5a···e8f3b9c6</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">nonce</div>
+                    <div class="bf-val">93 012</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">transacciones (5)</div>
+                    <div class="txs-list">
+                      <div class="tx-row"><span class="tr2">RESELL</span> <span class="td2">T000087 → 0xff009988 · $17.500</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000742 → 0x88ee1144 · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000803 → 0x22dd99ff · $15.000</span></div>
+                      <div class="tx-row"><span class="tr2">RESELL</span> <span class="td2">T000123 → 0xbb3377ee · $16.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T000915 → 0x66aa44cc · $15.000</span></div>
+                    </div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">hash (SHA-256)</div>
+                    <div class="bf-val c3">000d7f2b···a4e1c8d5</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Connector 3→4 -->
+              <div class="block-connector">
+                <div class="conn-arrow-wrap">
+                  <div class="conn-line" style="background:#d2a8ff;opacity:0.6;"></div>
+                  <span style="color:#d2a8ff;font-size:0.9rem;">→</span>
+                </div>
+                <div class="conn-label" style="color:#d2a8ff;">prev_hash</div>
+              </div>
+
+              <!-- Block 4 -->
+              <div class="block-card">
+                <div class="block-header bh-tx">
+                  <span class="block-num">Bloque #4</span>
+                  <span class="block-type-tag btt-tx">TX</span>
+                </div>
+                <div class="block-body">
+                  <div class="bf">
+                    <div class="bf-label">timestamp</div>
+                    <div class="bf-val">2026-06-18T11:12:44Z</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">prev_hash</div>
+                    <div class="bf-val c3">000d7f2b···a4e1c8d5</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">nonce</div>
+                    <div class="bf-val">17 654</div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">transacciones (5)</div>
+                    <div class="txs-list">
+                      <div class="tx-row"><span class="tr2">RESELL</span> <span class="td2">T000156 → 0xee7755aa · $15.500</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T001024 → 0x99ff2288 · $15.000</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T001105 → 0x33bbee66 · $15.000</span></div>
+                      <div class="tx-row"><span class="tr2">RESELL</span> <span class="td2">T000201 → 0x55dd1199 · $16.500</span></div>
+                      <div class="tx-row"><span class="tb">BUY</span> <span class="td2">T001287 → 0xcc8844ff · $15.000</span></div>
+                    </div>
+                  </div>
+                  <div class="bf">
+                    <div class="bf-label">hash (SHA-256)</div>
+                    <div class="bf-val c4">000e3a8c···b5f2d9e7</div>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /chain-row -->
+          </div><!-- /chain-container -->
+
+          <div class="chain-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#30363d;border:1px solid #484f58;"></div>prev_hash del génesis = 000…0 (sin bloque anterior)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#56d364;"></div>Hash bloque #0 → prev_hash bloque #1</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#79c0ff;"></div>Hash bloque #1 → prev_hash bloque #2</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#ffa657;"></div>Hash bloque #2 → prev_hash bloque #3</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#d2a8ff;"></div>Hash bloque #3 → prev_hash bloque #4</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e3b341;"></div>Hash bloque #4 — extremo de la cadena</div>
+            <div class="legend-item"><span class="tb" style="margin-right:4px;">BUY</span>Compra primaria &nbsp;|&nbsp; <span class="tr2" style="margin-right:4px;">RESELL</span>Reventa</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-card-title">Estructura JSON interna de un bloque de transacciones</div>
+        <div class="diagram-card-body">
+          <pre class="code-block">{
+  <span style="color:#7ee787">"index"</span>:           <span style="color:#79c0ff">2</span>,
+  <span style="color:#7ee787">"block_type"</span>:      <span style="color:#a5d6ff">"tx"</span>,
+  <span style="color:#7ee787">"event_id"</span>:        <span style="color:#a5d6ff">"a1b2c3d4-e5f6-7890-abcd-ef1234567890"</span>,
+  <span style="color:#7ee787">"timestamp"</span>:       <span style="color:#a5d6ff">"2026-06-16T09:45:33Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>:   <span style="color:#79c0ff">"000b9e3fd2a7c4b15e6f8a1c3d..."</span>,  <span style="color:#484f58">// hash del bloque #1</span>
+  <span style="color:#7ee787">"nonce"</span>:           <span style="color:#79c0ff">51823</span>,              <span style="color:#484f58">// hallado por el worker (PoW)</span>
+  <span style="color:#7ee787">"transactions"</span>: [
+    {
+      <span style="color:#7ee787">"tx_id"</span>:        <span style="color:#a5d6ff">"550e8400-e29b-41d4-a716-446655440000"</span>,
+      <span style="color:#7ee787">"type"</span>:         <span style="color:#a5d6ff">"buy"</span>,
+      <span style="color:#7ee787">"ticket_id"</span>:    <span style="color:#a5d6ff">"T000302"</span>,
+      <span style="color:#7ee787">"from_wallet"</span>:  <span style="color:#a5d6ff">null</span>,              <span style="color:#484f58">// null en compra primaria</span>
+      <span style="color:#7ee787">"to_wallet"</span>:    <span style="color:#a5d6ff">"0x77dd88ee"</span>,
+      <span style="color:#7ee787">"price"</span>:        <span style="color:#79c0ff">15000</span>,
+      <span style="color:#7ee787">"timestamp"</span>:   <span style="color:#a5d6ff">"2026-06-16T09:40:11Z"</span>
+    },
+    {
+      <span style="color:#7ee787">"tx_id"</span>:        <span style="color:#a5d6ff">"6ba7b810-9dad-11d1-80b4-00c04fd430c8"</span>,
+      <span style="color:#7ee787">"type"</span>:         <span style="color:#a5d6ff">"resell"</span>,
+      <span style="color:#7ee787">"ticket_id"</span>:    <span style="color:#a5d6ff">"T000042"</span>,
+      <span style="color:#7ee787">"from_wallet"</span>:  <span style="color:#a5d6ff">"0xab12ef34"</span>,       <span style="color:#484f58">// vendedor original</span>
+      <span style="color:#7ee787">"to_wallet"</span>:    <span style="color:#a5d6ff">"0x77aa22bb"</span>,
+      <span style="color:#7ee787">"price"</span>:        <span style="color:#79c0ff">18000</span>,
+      <span style="color:#7ee787">"timestamp"</span>:   <span style="color:#a5d6ff">"2026-06-16T09:42:55Z"</span>
+    }
+    <span style="color:#484f58">// ... 3 transacciones más hasta MAX_TX_PER_BLOCK (5)</span>
+  ],
+  <span style="color:#7ee787">"block_hash"</span>:      <span style="color:#ffa657">"000c1d5ae8f3b9c6..."</span>  <span style="color:#484f58">// SHA-256(bloque sin este campo) — inicia con "000" (dificultad 3)</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="diagram-card">
+        <div class="diagram-card-title">blockchain:{event_id} — contenido de la LIST en Redis (5 elementos)</div>
+        <div class="diagram-card-body" style="padding:0;">
+
+          <!-- index 0 — genesis -->
+          <div style="border-bottom:1px solid #21262d;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 8px;background:#0d1117;">
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.68rem;color:#484f58;min-width:64px;">LINDEX 0</span>
+              <span style="background:rgba(56,212,109,0.1);color:#56d364;border:1px solid rgba(56,212,109,0.25);padding:2px 9px;border-radius:20px;font-size:0.6rem;font-weight:700;">GENESIS</span>
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.67rem;color:#c0">hash: <span style="color:#56d364;">000a4f2e···8b1c3d9f</span></span>
+            </div>
+            <pre class="code-block" style="padding:0 18px 14px;margin:0;">{
+  <span style="color:#7ee787">"index"</span>: <span style="color:#79c0ff">0</span>,  <span style="color:#7ee787">"block_type"</span>: <span style="color:#a5d6ff">"genesis"</span>,  <span style="color:#7ee787">"event_id"</span>: <span style="color:#a5d6ff">"a1b2c3d4-..."</span>,
+  <span style="color:#7ee787">"timestamp"</span>: <span style="color:#a5d6ff">"2026-06-15T10:00:00Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>: <span style="color:#484f58">"0000000000000000000000000000000000000000000000000000000000000000"</span>,
+  <span style="color:#7ee787">"nonce"</span>: <span style="color:#79c0ff">0</span>,
+  <span style="color:#7ee787">"transactions"</span>: <span style="color:#c9d1d9">[]</span>,
+  <span style="color:#7ee787">"name"</span>: <span style="color:#a5d6ff">"Rolling Stones 2026"</span>,  <span style="color:#7ee787">"total_tickets"</span>: <span style="color:#79c0ff">5000</span>,  <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span>,
+  <span style="color:#7ee787">"rules"</span>: { <span style="color:#7ee787">"precio_max"</span>: <span style="color:#79c0ff">50</span>, <span style="color:#7ee787">"max_reventas"</span>: <span style="color:#79c0ff">3</span>, <span style="color:#7ee787">"nominada"</span>: <span style="color:#79c0ff">false</span>, <span style="color:#7ee787">"ventana_venta"</span>: <span style="color:#79c0ff">24</span> },
+  <span style="color:#7ee787">"block_hash"</span>: <span style="color:#56d364">"000a4f2e8b1c3d9f6e7a0b5c2d4e8f1a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5d8"</span>
+}</pre>
+          </div>
+
+          <!-- index 1 -->
+          <div style="border-bottom:1px solid #21262d;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 8px;background:#0d1117;">
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.68rem;color:#484f58;min-width:64px;">LINDEX 1</span>
+              <span style="background:rgba(56,139,253,0.1);color:#79c0ff;border:1px solid rgba(56,139,253,0.25);padding:2px 9px;border-radius:20px;font-size:0.6rem;font-weight:700;">TX · 5 ops</span>
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.67rem;color:#8b949e;">hash: <span style="color:#79c0ff;">000b9e3f···d2a7c4b1</span></span>
+            </div>
+            <pre class="code-block" style="padding:0 18px 14px;margin:0;">{
+  <span style="color:#7ee787">"index"</span>: <span style="color:#79c0ff">1</span>,  <span style="color:#7ee787">"block_type"</span>: <span style="color:#a5d6ff">"tx"</span>,  <span style="color:#7ee787">"event_id"</span>: <span style="color:#a5d6ff">"a1b2c3d4-..."</span>,
+  <span style="color:#7ee787">"timestamp"</span>: <span style="color:#a5d6ff">"2026-06-15T14:22:08Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>: <span style="color:#56d364">"000a4f2e8b1c3d9f6e7a0b5c2d4e8f1a3b6c9d2e5f8a1b4c7d0e3f6a9b2c5d8"</span>,
+  <span style="color:#7ee787">"nonce"</span>: <span style="color:#79c0ff">28471</span>,
+  <span style="color:#7ee787">"transactions"</span>: [
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-001"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000042"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xab12ef34"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-002"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000087"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xcc44ff11"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-003"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000123"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x55ee99dd"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-004"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000156"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x11bb33cc"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-005"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000201"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xaa66ff44"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> }
+  ],
+  <span style="color:#7ee787">"block_hash"</span>: <span style="color:#79c0ff">"000b9e3fd2a7c4b15e6f8a1c3d2e9f4a7b0c3d6e9f2a5b8c1d4e7f0a3b6c9d2"</span>
+}</pre>
+          </div>
+
+          <!-- index 2 -->
+          <div style="border-bottom:1px solid #21262d;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 8px;background:#0d1117;">
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.68rem;color:#484f58;min-width:64px;">LINDEX 2</span>
+              <span style="background:rgba(56,139,253,0.1);color:#79c0ff;border:1px solid rgba(56,139,253,0.25);padding:2px 9px;border-radius:20px;font-size:0.6rem;font-weight:700;">TX · 5 ops</span>
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.67rem;color:#8b949e;">hash: <span style="color:#ffa657;">000c1d5a···e8f3b9c6</span></span>
+            </div>
+            <pre class="code-block" style="padding:0 18px 14px;margin:0;">{
+  <span style="color:#7ee787">"index"</span>: <span style="color:#79c0ff">2</span>,  <span style="color:#7ee787">"block_type"</span>: <span style="color:#a5d6ff">"tx"</span>,  <span style="color:#7ee787">"event_id"</span>: <span style="color:#a5d6ff">"a1b2c3d4-..."</span>,
+  <span style="color:#7ee787">"timestamp"</span>: <span style="color:#a5d6ff">"2026-06-16T09:45:33Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>: <span style="color:#79c0ff">"000b9e3fd2a7c4b15e6f8a1c3d2e9f4a7b0c3d6e9f2a5b8c1d4e7f0a3b6c9d2"</span>,
+  <span style="color:#7ee787">"nonce"</span>: <span style="color:#79c0ff">51823</span>,
+  <span style="color:#7ee787">"transactions"</span>: [
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-006"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000302"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x77dd88ee"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-007"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000415"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x33ff55aa"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-008"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#ffa657">"resell"</span>, <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000042"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">"0xab12ef34"</span>, <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x77aa22bb"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">18000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-009"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000521"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xee1199bb"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-010"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000634"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x44cc66dd"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> }
+  ],
+  <span style="color:#7ee787">"block_hash"</span>: <span style="color:#ffa657">"000c1d5ae8f3b9c63d7a0f2b5e9c1d4a8f2b6e0c4d8a2f6b0e4c8d2a6f0b4e8"</span>
+}</pre>
+          </div>
+
+          <!-- index 3 -->
+          <div style="border-bottom:1px solid #21262d;">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 8px;background:#0d1117;">
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.68rem;color:#484f58;min-width:64px;">LINDEX 3</span>
+              <span style="background:rgba(56,139,253,0.1);color:#79c0ff;border:1px solid rgba(56,139,253,0.25);padding:2px 9px;border-radius:20px;font-size:0.6rem;font-weight:700;">TX · 5 ops</span>
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.67rem;color:#8b949e;">hash: <span style="color:#d2a8ff;">000d7f2b···a4e1c8d5</span></span>
+            </div>
+            <pre class="code-block" style="padding:0 18px 14px;margin:0;">{
+  <span style="color:#7ee787">"index"</span>: <span style="color:#79c0ff">3</span>,  <span style="color:#7ee787">"block_type"</span>: <span style="color:#a5d6ff">"tx"</span>,  <span style="color:#7ee787">"event_id"</span>: <span style="color:#a5d6ff">"a1b2c3d4-..."</span>,
+  <span style="color:#7ee787">"timestamp"</span>: <span style="color:#a5d6ff">"2026-06-17T16:30:51Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>: <span style="color:#ffa657">"000c1d5ae8f3b9c63d7a0f2b5e9c1d4a8f2b6e0c4d8a2f6b0e4c8d2a6f0b4e8"</span>,
+  <span style="color:#7ee787">"nonce"</span>: <span style="color:#79c0ff">93012</span>,
+  <span style="color:#7ee787">"transactions"</span>: [
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-011"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#ffa657">"resell"</span>, <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000087"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">"0xcc44ff11"</span>, <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xff009988"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">17500</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-012"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000742"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x88ee1144"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-013"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000803"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x22dd99ff"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-014"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#ffa657">"resell"</span>, <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000123"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">"0x55ee99dd"</span>, <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xbb3377ee"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">16000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-015"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000915"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x66aa44cc"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> }
+  ],
+  <span style="color:#7ee787">"block_hash"</span>: <span style="color:#d2a8ff">"000d7f2ba4e1c8d53b9f1e7c5a2d8f4b0e6c3a9f7b5e2c0a8d6f4b2e0c8a6f4"</span>
+}</pre>
+          </div>
+
+          <!-- index 4 -->
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 18px 8px;background:#0d1117;">
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.68rem;color:#484f58;min-width:64px;">LINDEX 4</span>
+              <span style="background:rgba(56,139,253,0.1);color:#79c0ff;border:1px solid rgba(56,139,253,0.25);padding:2px 9px;border-radius:20px;font-size:0.6rem;font-weight:700;">TX · 5 ops</span>
+              <span style="font-family:'SFMono-Regular',Consolas,monospace;font-size:0.67rem;color:#8b949e;">hash: <span style="color:#e3b341;">000e3a8c···b5f2d9e7</span> &nbsp;<span style="color:#484f58;">← LINDEX -1 (último)</span></span>
+            </div>
+            <pre class="code-block" style="padding:0 18px 14px;margin:0;">{
+  <span style="color:#7ee787">"index"</span>: <span style="color:#79c0ff">4</span>,  <span style="color:#7ee787">"block_type"</span>: <span style="color:#a5d6ff">"tx"</span>,  <span style="color:#7ee787">"event_id"</span>: <span style="color:#a5d6ff">"a1b2c3d4-..."</span>,
+  <span style="color:#7ee787">"timestamp"</span>: <span style="color:#a5d6ff">"2026-06-18T11:12:44Z"</span>,
+  <span style="color:#7ee787">"previous_hash"</span>: <span style="color:#d2a8ff">"000d7f2ba4e1c8d53b9f1e7c5a2d8f4b0e6c3a9f7b5e2c0a8d6f4b2e0c8a6f4"</span>,
+  <span style="color:#7ee787">"nonce"</span>: <span style="color:#79c0ff">17654</span>,
+  <span style="color:#7ee787">"transactions"</span>: [
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-016"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#ffa657">"resell"</span>, <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000156"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">"0x11bb33cc"</span>, <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xee7755aa"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15500</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-017"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T001024"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x99ff2288"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-018"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T001105"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x33bbee66"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-019"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#ffa657">"resell"</span>, <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T000201"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">"0xaa66ff44"</span>, <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0x55dd1199"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">16500</span> },
+    { <span style="color:#7ee787">"tx_id"</span>: <span style="color:#a5d6ff">"tx-020"</span>, <span style="color:#7ee787">"type"</span>: <span style="color:#56d364">"buy"</span>,    <span style="color:#7ee787">"ticket_id"</span>: <span style="color:#a5d6ff">"T001287"</span>, <span style="color:#7ee787">"from_wallet"</span>: <span style="color:#a5d6ff">null</span>,          <span style="color:#7ee787">"to_wallet"</span>: <span style="color:#a5d6ff">"0xcc8844ff"</span>, <span style="color:#7ee787">"price"</span>: <span style="color:#79c0ff">15000</span> }
+  ],
+  <span style="color:#7ee787">"block_hash"</span>: <span style="color:#e3b341">"000e3a8cb5f2d9e71c4f8a3d6b0e5c9f2a7d1b4e8c3f6a0d5b9e2c7f1a4d8b6"</span>
+}</pre>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── REDIS MODEL ── -->
+    <div class="diagram-section" id="sec-redis-model">
+      <div class="section-header">
+        <h2><span class="icon">🗄️</span> Modelo de datos — Redis</h2>
+        <p>Redis es la fuente de verdad del estado activo del sistema. Todas las claves se organizan por namespace. Cada namespace tiene un color identificador; los tipos de dato Redis están codificados con badges de color.</p>
+        <div class="tags">
+          <span class="type-badge t-str">STRING</span>
+          <span class="type-badge t-list">LIST</span>
+          <span class="type-badge t-hash">HASH</span>
+          <span class="type-badge t-set">SET</span>
+          <span class="ttl-badge">TTL 900s</span>
+        </div>
+      </div>
+
+      <div class="redis-grid">
+
+        <!-- Namespace event: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#388bfd;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#79c0ff;">event:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">event:<span class="rp">{event_id}</span></span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Objeto evento completo serializado como JSON</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">{"name":"Rolling Stones 2026","date":"2026-10-15T20:00:00Z","venue":"Luna Park","total_tickets":5000,"price":15000,"status":"active","rules":{"precio_max":50,"max_reventas":3,...},"genesis_block_hash":"000a4f2e..."}</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">events<span class="rp">:list</span></span></td>
+                <td><span class="type-badge t-list">LIST</span></td>
+                <td class="rdesc">Índice global de IDs de todos los eventos (LPUSH al crear)</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">["a1b2c3d4", "e5f6a7b8", "c9d0e1f2"]</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">event:<span class="rp">{event_id}</span>:available_tickets</span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Contador de entradas disponibles. DECR al comprar, INCR al cancelar.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">"4985"</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">event:<span class="rp">{event_id}</span>:listings</span></td>
+                <td><span class="type-badge t-hash">HASH</span></td>
+                <td class="rdesc">Tickets en reventa. Field = ticket_id, Value = JSON del listing.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">field "T000042" → {"seller_wallet":"0xab12ef34","price":18000,"listed_at":"2026-08-10T...","resale_count":1}</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">event:<span class="rp">{event_id}</span>:tickets:pool</span></td>
+                <td><span class="type-badge t-list">LIST</span></td>
+                <td class="rdesc">Cola FIFO de IDs de tickets sin dueño disponibles para LPOP al comprar.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">["T004997", "T004998", "T004999", "T005000"]</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Namespace ticket: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#ffa657;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#ffa657;">ticket:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">ticket:<span class="rp">{event_id}</span>:<span class="rp">{ticket_id}</span>:owner</span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Dueño actual del ticket. Tres estados posibles.</td>
+                <td><span style="font-size:0.69rem;color:var(--text-muted);">900s si pending</span></td>
+                <td>
+                  <span class="rval">"0xab12ef34"</span>
+                  <span class="rval">"null"</span>
+                  <span class="rval">"pending_payment"</span>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rkey">ticket:<span class="rp">{event_id}</span>:<span class="rp">{ticket_id}</span>:resales</span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Contador de reventas realizadas. INCR en cada transferencia.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">"2"</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">ticket:<span class="rp">{event_id}</span>:<span class="rp">{ticket_id}</span>:qr_secret</span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Secreto único (32 bytes hex) para firmar y verificar JWTs de QR. Se elimina al transferir.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">"a3f9d2e18b4c5f670c1d2e3f4a5b6c7d8e9f0a1b"</span></td>
+              </tr>
+              <tr>
+                <td><span class="rkey">ticket:<span class="rp">{event_id}</span>:<span class="rp">{ticket_id}</span>:checked_in</span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Timestamp del primer ingreso al evento. Ausente = no ingresó. Anti-replay flag.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">"2026-10-15T20:15:30Z"</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Namespace user: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#d2a8ff;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#d2a8ff;">user:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">user:<span class="rp">{wallet_address}</span>:tickets</span></td>
+                <td><span class="type-badge t-set">SET</span></td>
+                <td class="rdesc">Set de entradas del usuario. Cada elemento es la clave compuesta "{event_id}:{ticket_id}".</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">{"a1b2c3d4:T000042", "a1b2c3d4:T000087", "e5f6a7b8:T001324"}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Namespace pending_tx: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#e3b341;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#e3b341;">pending_tx:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">pending_tx:<span class="rp">{tx_id}</span></span></td>
+                <td><span class="type-badge t-str">STRING</span></td>
+                <td class="rdesc">Transacción en espera de confirmación de pago. Expira si el usuario no confirma.</td>
+                <td><span class="ttl-badge">TTL 900s</span></td>
+                <td><span class="rval">{"tx_id":"uuid","type":"buy","event_id":"a1b2c3d4","ticket_id":"T000042","wallet_address":"0xab12ef34","price":15000,"event_name":"Rolling Stones 2026"}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Namespace txpool: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#56d364;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#56d364;">txpool:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">txpool:<span class="rp">{event_id}</span></span></td>
+                <td><span class="type-badge t-list">LIST</span></td>
+                <td class="rdesc">Cola de transacciones confirmadas esperando ser incluidas en un bloque. El NCT las consume vía RabbitMQ.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">["{tx_buy_json}", "{tx_resell_json}", "{tx_buy_json2}"]</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Namespace blockchain: -->
+        <div class="redis-namespace">
+          <div class="redis-ns-header">
+            <span class="ns-dot" style="background:#79c0ff;"></span>
+            Namespace &nbsp;<code style="font-family:monospace;color:#79c0ff;">blockchain:</code>
+          </div>
+          <table class="redis-table">
+            <thead>
+              <tr>
+                <th style="width:30%;">Key Pattern</th>
+                <th style="width:8%;">Tipo</th>
+                <th style="width:28%;">Descripción</th>
+                <th style="width:10%;">TTL</th>
+                <th>Ejemplo de valor</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rkey">blockchain:<span class="rp">{event_id}</span></span></td>
+                <td><span class="type-badge t-list">LIST</span></td>
+                <td class="rdesc">Cadena de bloques del evento. Index 0 = génesis. RPUSH al minar. LINDEX -1 para el último bloque.</td>
+                <td class="ttl-none">—</td>
+                <td><span class="rval">["{genesis_json}", "{block_1_json}", "{block_2_json}", "{block_3_json}", ...]</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div><!-- /redis-grid -->
+
+      <!-- Mapa visual de relaciones -->
+      <div class="diagram-card" style="margin-top:28px;">
+        <div class="diagram-card-title">Relaciones entre namespaces</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+graph LR
+  subgraph E["Namespace event:"]
+    EV["event:{id}"]
+    EL["events:list"]
+    EA["event:{id}:available_tickets"]
+    ELS["event:{id}:listings"]
+    EP["event:{id}:tickets:pool"]
+  end
+
+  subgraph T["Namespace ticket:"]
+    TO["ticket:{eid}:{tid}:owner"]
+    TR["ticket:{eid}:{tid}:resales"]
+    TQ["ticket:{eid}:{tid}:qr_secret"]
+    TC["ticket:{eid}:{tid}:checked_in"]
+  end
+
+  subgraph U["Namespace user:"]
+    UT["user:{wallet}:tickets"]
+  end
+
+  subgraph P["Namespace pending_tx:"]
+    PT["pending_tx:{tx_id}"]
+  end
+
+  subgraph TX["Namespace txpool:"]
+    TP["txpool:{event_id}"]
+  end
+
+  subgraph BC["Namespace blockchain:"]
+    BL["blockchain:{event_id}"]
+  end
+
+  EV -->|"event_id referenciado"| TO
+  EV -->|"event_id referenciado"| EP
+  EV -->|"event_id referenciado"| ELS
+  EP -->|"LPOP al comprar"| TO
+  TO -->|"wallet = dueño"| UT
+  PT -->|"confirmar → actualiza"| TO
+  PT -->|"confirmar → RPUSH"| TP
+  TP -->|"NCT consume → bloque"| BL
+  ELS -->|"listing tiene ticket_id"| TO
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div><!-- /content -->
+</main>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'dark',
+    themeVariables: {
+      darkMode: true,
+      background: '#161b22',
+      primaryColor: '#1f3550',
+      primaryTextColor: '#c9d1d9',
+      primaryBorderColor: '#388bfd',
+      lineColor: '#58a6ff',
+      secondaryColor: '#21262d',
+      tertiaryColor: '#0d1117',
+      noteBkgColor: '#21262d',
+      noteTextColor: '#c9d1d9',
+      noteBorderColor: '#30363d',
+      actorBkg: '#1f3550',
+      actorBorder: '#388bfd',
+      actorTextColor: '#f0f6fc',
+      actorLineColor: '#58a6ff',
+      activationBkgColor: '#21262d',
+      activationBorderColor: '#58a6ff',
+      labelBoxBkgColor: '#161b22',
+      labelBoxBorderColor: '#30363d',
+      labelTextColor: '#8b949e',
+      loopTextColor: '#c9d1d9',
+      signalColor: '#58a6ff',
+      signalTextColor: '#c9d1d9',
+      sequenceNumberColor: '#0d1117',
+    },
+    sequence: {
+      diagramMarginX: 30,
+      diagramMarginY: 20,
+      actorMargin: 60,
+      width: 160,
+      height: 50,
+      boxMargin: 10,
+      boxTextMargin: 5,
+      noteMargin: 10,
+      messageMargin: 35,
+      mirrorActors: false,
+      useMaxWidth: true,
+    }
+  });
+
+  const navItems = document.querySelectorAll('.nav-item');
+  const sections = document.querySelectorAll('.diagram-section');
+  const welcome = document.getElementById('welcome');
+  const searchInput = document.getElementById('search-input');
+
+  const renderedSections = new Set();
+
+  function showSection(target) {
+    welcome.classList.add('hidden');
+
+    sections.forEach(s => s.classList.remove('active'));
+    navItems.forEach(n => n.classList.remove('active'));
+
+    const sec = document.getElementById('sec-' + target);
+    if (!sec) return;
+
+    sec.classList.add('active');
+    document.querySelector(`.nav-item[data-target="${target}"]`)?.classList.add('active');
+
+    if (!renderedSections.has(target)) {
+      renderedSections.add(target);
+      mermaid.run({ nodes: sec.querySelectorAll('.mermaid') });
+    }
+  }
+
+  navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const target = item.dataset.target;
+      showSection(target);
+    });
+  });
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value.toLowerCase().trim();
+    navItems.forEach(item => {
+      const label = item.querySelector('.nav-label').textContent.toLowerCase();
+      item.style.display = (!query || label.includes(query)) ? '' : 'none';
+    });
+    const sections = document.querySelectorAll('.nav-section');
+    sections.forEach(sec => {
+      const next = sec.nextElementSibling;
+      let hasVisible = false;
+      let el = next;
+      while (el && el.classList.contains('nav-item')) {
+        if (el.style.display !== 'none') hasVisible = true;
+        el = el.nextElementSibling;
+      }
+      sec.style.display = hasVisible ? '' : 'none';
+    });
+  });
+
+  // Show first section by default
+  showSection('buy-ticket');
+</script>
+</body>
+</html>
