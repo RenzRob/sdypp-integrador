@@ -1,0 +1,37 @@
+iac/k8s/cluster-services/services/transaction-api-deployment.yaml
+  s_a7572fcb036e5e::t_046850bb846c46 43-44
+iac/k8s/cluster-services/monitoring/ticketchain-dashboard.yaml
+  s_a7572fcb036e5e::t_b56238310e0354 47
+  s_a7572fcb036e5e::t_6dbc665d0248d9 80
+  s_a7572fcb036e5e::t_9494c8b638b3a5 117
+  s_a7572fcb036e5e::t_cee23aaeb654ab 144
+  s_a7572fcb036e5e::t_b9a96bcc23d14e 74
+  s_a7572fcb036e5e::t_c710c182ce2081 111
+  s_a7572fcb036e5e::t_eb01b36f724d15 41
+  s_a7572fcb036e5e::t_22b9336fb1c59c 155-156,164,169-170,178-179,181-192,195,203,205,208-209,217-218,220-225,228-255,261-262,270,272,275-276,284-285,290-291,295,298-304,310,315-316,324-325,329,337,339,342-343,351-352,356,361,377,411,451
+  s_a7572fcb036e5e::t_a92f933074a5da 481
+  s_a7572fcb036e5e::t_5ec28817567493 463,465
+  s_a7572fcb036e5e::t_2c53919f422c62 427-450,452-462,464,466-470
+iac/k8s/cluster-services/services/access-control-deployment.yaml
+  s_a7572fcb036e5e::t_716b5046c3baf0 42-43
+iac/k8s/cluster-services/monitoring/rabbitmq-servicemonitor.yaml
+  s_a7572fcb036e5e::t_4d575fb6f32a5d 19-23
+iac/k8s/cluster-services/infrastructure/rabbitmq-deployment.yaml
+  s_a7572fcb036e5e::t_295ec03af253b3 64-65
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "fc4dbdec8d700d99ed91b8f232394f3a896974a2",
+  "prompts": {},
+  "sessions": {
+    "s_a7572fcb036e5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afee2941-19bc-45fa-bfcc-19e7cdb41419",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
