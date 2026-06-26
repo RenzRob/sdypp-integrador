@@ -150,10 +150,33 @@ router.post(
         price,
       };
 
+      // Misma serialización que blockchain.py / workers: json.dumps(sort_keys=True)
+      function pythonJsonDumps(val) {
+        if (val === null) return 'null';
+        if (typeof val === 'boolean') return val ? 'true' : 'false';
+        if (typeof val === 'number') return String(val);
+        if (typeof val === 'string') return JSON.stringify(val);
+        if (Array.isArray(val)) {
+          const items = val.map(v => pythonJsonDumps(v));
+          return '[' + items.join(', ') + ']';
+        }
+        if (typeof val === 'object') {
+          const keys = Object.keys(val).sort();
+          const pairs = keys.map(k => `${JSON.stringify(k)}: ${pythonJsonDumps(val[k])}`);
+          return '{' + pairs.join(', ') + '}';
+        }
+        return String(val);
+      }
+
+      // Mismo hash que compute_hash() en blockchain.py: MD5(_block_data + str(nonce))
+      const keys = Object.keys(genesisBlock).filter(k => k !== 'nonce' && k !== 'block_hash').sort();
+      const sortedObj = {};
+      for (const k of keys) sortedObj[k] = genesisBlock[k];
       const genesis_block_hash = crypto
-        .createHash('sha256')
-        .update(JSON.stringify(genesisBlock))
+        .createHash('md5')
+        .update(pythonJsonDumps(sortedObj) + '0')
         .digest('hex');
+      genesisBlock.block_hash = genesis_block_hash;
 
       const event = {
         id: event_id,
