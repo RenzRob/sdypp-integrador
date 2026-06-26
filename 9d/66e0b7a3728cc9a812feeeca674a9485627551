@@ -1,0 +1,21 @@
+frontend/src/pages/Checkout.jsx
+  s_8717bdb3691680::t_6ede921c29e267 2,4,15-32,34-35,43,45-46,49-51,53,63,66-72,84-88,93-94,99-100,103,108,110-113,115-136,138-140,144-148,151-185,187-211,216
+frontend/src/pages/EventDetail.jsx
+  s_8717bdb3691680::t_a4b57cecbc458b 103,121
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "9d66e0b7a3728cc9a812feeeca674a9485627551",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
