@@ -15,6 +15,14 @@ function generateWalletAddress(userId) {
   return '0x' + crypto.createHash('sha256').update(userId).digest('hex').slice(0, 8);
 }
 
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: 'lax',
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 24 * 60 * 60 * 1000,
+  path: '/',
+};
+
 function signToken(user) {
   return jwt.sign(
     {
@@ -26,6 +34,10 @@ function signToken(user) {
     process.env.JWT_SECRET,
     { expiresIn: '24h' }
   );
+}
+
+function setTokenCookie(res, token) {
+  res.cookie('token', token, COOKIE_OPTS);
 }
 
 // POST /auth/register
@@ -60,6 +72,7 @@ router.post(
       );
 
       const token = signToken({ id, email, role, wallet_address });
+      setTokenCookie(res, token);
 
       return res.status(201).json({
         token,
@@ -104,6 +117,7 @@ router.post(
       }
 
       const token = signToken(user);
+      setTokenCookie(res, token);
 
       return res.json({
         token,
@@ -131,6 +145,12 @@ router.get('/me', requireAuth, async (req, res) => {
     console.error('[me] Error:', err.message);
     return res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// POST /auth/logout
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', { path: '/' });
+  return res.json({ message: 'Sesión cerrada' });
 });
 
 module.exports = router;
