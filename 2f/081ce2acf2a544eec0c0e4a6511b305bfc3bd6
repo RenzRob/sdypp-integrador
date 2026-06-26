@@ -1,0 +1,41 @@
+iac/k8s/cluster-services/monitoring/access-control-servicemonitor.yaml
+  s_a7572fcb036e5e::t_57c50a05dc346f 1-18
+backend/access-control/src/app.js
+  s_a7572fcb036e5e::t_78283438dc94c9 4,20-41
+  s_a7572fcb036e5e::t_bbab99e67b5446 42
+backend/transaction-api/package.json
+  s_a7572fcb036e5e::t_ea1bef30174c14 16-17
+backend/access-control/package.json
+  s_a7572fcb036e5e::t_2f368275421549 15
+iac/k8s/cluster-services/services/transaction-api-deployment.yaml
+  s_a7572fcb036e5e::t_c1d34713fed253 48-49
+backend/transaction-api/src/app.js
+  s_a7572fcb036e5e::t_2c64b1c9d6a326 4,21-42
+  s_a7572fcb036e5e::t_378a168dd070ac 43
+iac/k8s/cluster-services/services/access-control-deployment.yaml
+  s_a7572fcb036e5e::t_3965fb08bb31b9 47-48
+iac/k8s/cluster-services/monitoring/prometheus-values.yaml
+  s_a7572fcb036e5e::t_49d8a7a5c801fa 1-42
+iac/k8s/cluster-services/monitoring/rabbitmq-servicemonitor.yaml
+  s_a7572fcb036e5e::t_216666b04b43fe 1-18
+iac/k8s/cluster-services/infrastructure/rabbitmq-deployment.yaml
+  s_a7572fcb036e5e::t_23fa846fbed1c8 2-10,44,48-50,55-57,75-77
+iac/k8s/cluster-services/monitoring/transaction-api-servicemonitor.yaml
+  s_a7572fcb036e5e::t_476ae3ef1aa622 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "2f081ce2acf2a544eec0c0e4a6511b305bfc3bd6",
+  "prompts": {},
+  "sessions": {
+    "s_a7572fcb036e5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afee2941-19bc-45fa-bfcc-19e7cdb41419",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
