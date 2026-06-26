@@ -1,0 +1,19 @@
+frontend/src/components/Navbar.jsx
+  s_62cf0641cca74b::t_362659540e5d2c 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "98f21427689d0bf3c90f473ed81030fb0b57e107",
+  "prompts": {},
+  "sessions": {
+    "s_62cf0641cca74b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c50ef156-ba2d-4a80-a11c-691d01c726a3",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
