@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import BlockchainViewer from '../components/BlockchainViewer.jsx'
 import { ArrowLeft, Edit, Calendar, MapPin, DollarSign, Ticket, ShoppingCart, Repeat, Ban, CheckCircle, AlertCircle, ArrowUpRight, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
@@ -42,19 +42,6 @@ export default function EventDetail() {
   const [buyingListed, setBuyingListed] = useState(null)
   const [activeTab, setActiveTab] = useState('oficial')
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const location = useLocation()
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search)
-    if (params.get('success') === 'true') {
-      const tid = params.get('ticket_id')
-      setBuyMessage(`¡Pago aprobado! Entrada ${tid} — confirmación pendiente en blockchain.`)
-      window.history.replaceState({}, '', `/events/${id}`)
-    } else if (params.get('error')) {
-      setBuyError(`Error en el pago: ${params.get('error')}`)
-      window.history.replaceState({}, '', `/events/${id}`)
-    }
-  }, [location, id])
 
   useEffect(() => {
     document.title = event ? `${event.name} — TicketChain` : 'Evento — TicketChain'
@@ -100,8 +87,7 @@ export default function EventDetail() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || data.message || `Error ${res.status}`)
-      if (data.init_point) { window.location.href = data.init_point; return }
-      setBuyMessage(`Entrada asignada: ${data.ticket_id} — confirmación pendiente en blockchain.`)
+      setBuyMessage(`Entrada ${data.ticket_id} asignada — confirmación pendiente en blockchain.`)
       fetchEvent(); fetchBlocks(); fetchListings()
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
     finally { setBuying(false) }
@@ -116,7 +102,6 @@ export default function EventDetail() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || `Error ${res.status}`)
-      if (data.init_point) { window.location.href = data.init_point; return }
       setBuyMessage(`Entrada ${listing.ticket_id} comprada — confirmación pendiente en blockchain.`)
       fetchEvent(); fetchBlocks(); fetchListings()
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
