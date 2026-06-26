@@ -62,24 +62,26 @@ router.post(
       }
 
       const tx_id = uuidv4();
-      const tx = {
-        tx_id,
+      const pendingTx = {
         type: 'buy',
         event_id,
         ticket_id,
-        from_wallet: null,
-        to_wallet: req.user.wallet_address,
+        wallet_address: req.user.wallet_address,
         price: event.price,
-        timestamp: new Date().toISOString(),
+        event_name: event.name,
       };
 
-      await redis.set(`ticket:${event_id}:${ticket_id}:owner`, req.user.wallet_address);
-      await redis.sadd(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
-      await redis.decr(`event:${event_id}:available_tickets`);
-      await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
-      await publishTransaction(tx);
+      await redis.setex(`ticket:${event_id}:${ticket_id}:owner`, 900, 'pending_payment');
+      await redis.setex(`pending_tx:${tx_id}`, 900, JSON.stringify(pendingTx));
 
-      return res.status(200).json({ tx_id, ticket_id, status: 'confirmed' });
+      return res.status(200).json({
+        tx_id,
+        ticket_id,
+        event_id,
+        event_name: event.name,
+        price: event.price,
+        status: 'pending_payment',
+      });
     } catch (err) {
       console.error('[POST /buy] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
@@ -122,27 +124,29 @@ router.post(
       const resale_count = parseInt(resaleCountRaw || '0');
 
       const tx_id = uuidv4();
-      const tx = {
-        tx_id,
+      const pendingTx = {
         type: 'resell',
         event_id,
         ticket_id,
-        from_wallet: listing.seller_wallet,
-        to_wallet: req.user.wallet_address,
+        wallet_address: req.user.wallet_address,
+        seller_wallet: listing.seller_wallet,
         price: listing.price,
-        timestamp: new Date().toISOString(),
+        resale_count: resale_count + 1,
+        event_name: event.name,
       };
 
-      await redis.set(`ticket:${event_id}:${ticket_id}:owner`, req.user.wallet_address);
-      await redis.set(`ticket:${event_id}:${ticket_id}:resales`, String(resale_count + 1));
-      await redis.del(`ticket:${event_id}:${ticket_id}:qr_secret`);
-      await redis.srem(`user:${listing.seller_wallet}:tickets`, `${event_id}:${ticket_id}`);
-      await redis.sadd(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
+      await redis.setex(`ticket:${event_id}:${ticket_id}:owner`, 900, 'pending_payment');
       await redis.hdel(`event:${event_id}:listings`, ticket_id);
-      await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
-      await publishTransaction(tx);
+      await redis.setex(`pending_tx:${tx_id}`, 900, JSON.stringify(pendingTx));
 
-      return res.status(200).json({ tx_id, ticket_id, status: 'confirmed' });
+      return res.status(200).json({
+        tx_id,
+        ticket_id,
+        event_id,
+        event_name: pendingTx.event_name,
+        price: listing.price,
+        status: 'pending_payment',
+      });
     } catch (err) {
       console.error('[POST /buy-listed] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
@@ -426,6 +430,97 @@ router.get(
       return res.json({ token, expires_at: Math.floor(Date.now() / 1000) + 60 });
     } catch (err) {
       console.error('[GET /qr-token] Error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// ─── Checkout simulado ────────────────────────────────────────────────────
+
+// POST /transactions/checkout/confirm — confirma una reserva pendiente
+router.post(
+  '/checkout/confirm',
+  requireAuth,
+  [body('tx_id').isUUID().withMessage('Valid tx_id required')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+    const { tx_id } = req.body;
+
+    try {
+      const rawTx = await redis.getdel(`pending_tx:${tx_id}`);
+      if (!rawTx) return res.status(404).json({ error: 'Sesión de pago no encontrada o expirada' });
+      const p = JSON.parse(rawTx);
+
+      if (p.wallet_address !== req.user.wallet_address) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      const tx = {
+        tx_id,
+        type: p.type,
+        event_id: p.event_id,
+        ticket_id: p.ticket_id,
+        from_wallet: p.seller_wallet || null,
+        to_wallet: p.wallet_address,
+        price: p.price,
+        timestamp: new Date().toISOString(),
+      };
+
+      await redis.set(`ticket:${p.event_id}:${p.ticket_id}:owner`, p.wallet_address);
+      await redis.sadd(`user:${p.wallet_address}:tickets`, `${p.event_id}:${p.ticket_id}`);
+
+      if (p.type === 'buy') {
+        await redis.decr(`event:${p.event_id}:available_tickets`);
+      } else if (p.type === 'resell') {
+        await redis.set(`ticket:${p.event_id}:${p.ticket_id}:resales`, String(p.resale_count));
+        await redis.del(`ticket:${p.event_id}:${p.ticket_id}:qr_secret`);
+        await redis.srem(`user:${p.seller_wallet}:tickets`, `${p.event_id}:${p.ticket_id}`);
+      }
+
+      await redis.rpush(`txpool:${p.event_id}`, JSON.stringify(tx));
+      await publishTransaction(tx);
+
+      return res.status(200).json({ tx_id, ticket_id: p.ticket_id, event_id: p.event_id, status: 'confirmed' });
+    } catch (err) {
+      console.error('[POST /checkout/confirm] Error:', err.message);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// DELETE /transactions/checkout/:tx_id — cancela la reserva y libera el ticket
+router.delete(
+  '/checkout/:tx_id',
+  requireAuth,
+  [param('tx_id').isUUID().withMessage('Valid tx_id required')],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+    const { tx_id } = req.params;
+
+    try {
+      const rawTx = await redis.getdel(`pending_tx:${tx_id}`);
+      if (!rawTx) return res.json({ status: 'cancelled' }); // ya expiró, nada que hacer
+
+      const p = JSON.parse(rawTx);
+      if (p.wallet_address !== req.user.wallet_address) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      await redis.set(`ticket:${p.event_id}:${p.ticket_id}:owner`, 'null');
+      if (p.type === 'buy') {
+        await redis.rpush(`event:${p.event_id}:tickets:pool`, p.ticket_id);
+        await redis.incr(`event:${p.event_id}:available_tickets`);
+      } else if (p.type === 'resell' && p.seller_wallet) {
+        await redis.set(`ticket:${p.event_id}:${p.ticket_id}:owner`, p.seller_wallet);
+      }
+
+      return res.json({ status: 'cancelled' });
+    } catch (err) {
+      console.error('[DELETE /checkout/:tx_id] Error:', err.message);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

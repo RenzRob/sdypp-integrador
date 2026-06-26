@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import BlockchainViewer from '../components/BlockchainViewer.jsx'
 import { ArrowLeft, Edit, Calendar, MapPin, DollarSign, Ticket, ShoppingCart, Repeat, Ban, CheckCircle, AlertCircle, ArrowUpRight, PanelRightClose, PanelRightOpen, X } from 'lucide-react'
@@ -42,6 +42,15 @@ export default function EventDetail() {
   const [buyingListed, setBuyingListed] = useState(null)
   const [activeTab, setActiveTab] = useState('oficial')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    if (searchParams.get('success') === 'true') {
+      const tid = searchParams.get('ticket_id')
+      setBuyMessage(`Entrada ${tid} confirmada — procesando en blockchain.`)
+      setSearchParams({}, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     document.title = event ? `${event.name} — TicketChain` : 'Evento — TicketChain'
@@ -87,8 +96,11 @@ export default function EventDetail() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || data.message || `Error ${res.status}`)
-      setBuyMessage(`Entrada ${data.ticket_id} asignada — confirmación pendiente en blockchain.`)
-      fetchEvent(); fetchBlocks(); fetchListings()
+      const params = new URLSearchParams({
+        tx_id: data.tx_id, ticket_id: data.ticket_id,
+        event_id: data.event_id, event_name: data.event_name, price: data.price,
+      })
+      navigate(`/checkout?${params}`)
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
     finally { setBuying(false) }
   }
@@ -102,8 +114,11 @@ export default function EventDetail() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || `Error ${res.status}`)
-      setBuyMessage(`Entrada ${listing.ticket_id} comprada — confirmación pendiente en blockchain.`)
-      fetchEvent(); fetchBlocks(); fetchListings()
+      const params = new URLSearchParams({
+        tx_id: data.tx_id, ticket_id: data.ticket_id,
+        event_id: data.event_id, event_name: data.event_name, price: data.price,
+      })
+      navigate(`/checkout?${params}`)
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
     finally { setBuyingListed(null) }
   }
