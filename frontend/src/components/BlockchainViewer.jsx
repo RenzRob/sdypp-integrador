@@ -108,7 +108,7 @@ export default function BlockchainViewer({ blocks = [] }) {
       <p className="text-[10px] text-[#71717a] mb-5">
         {blocks.length} bloque{blocks.length !== 1 ? 's' : ''} — click para ver detalle
       </p>
-      <div className="space-y-0">
+      <div className="overflow-y-auto max-h-[calc(100vh-220px)] pr-1 space-y-0">
         {blocks.map((block, i) => (
           <BlockEntry key={block.index ?? i} block={block} isLast={i === blocks.length - 1} />
         ))}
