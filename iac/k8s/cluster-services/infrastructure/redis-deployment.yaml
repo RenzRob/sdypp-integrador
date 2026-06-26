@@ -159,7 +159,9 @@ spec:
             - sh
             - -c
             - |
-              echo "sentinel monitor mymaster redis-master 6379 2" > /tmp/sentinel.conf
+              echo "sentinel resolve-hostnames yes" > /tmp/sentinel.conf
+              echo "sentinel announce-hostnames yes" >> /tmp/sentinel.conf
+              echo "sentinel monitor mymaster redis-master 6379 2" >> /tmp/sentinel.conf
               echo "sentinel down-after-milliseconds mymaster 5000" >> /tmp/sentinel.conf
               echo "sentinel failover-timeout mymaster 10000" >> /tmp/sentinel.conf
               echo "sentinel parallel-syncs mymaster 1" >> /tmp/sentinel.conf

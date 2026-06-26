@@ -89,7 +89,8 @@ router.get('/', requireOptionalAuth, async (req, res) => {
 
       const ev = JSON.parse(raw);
 
-      if (isLoadTestViewer ? !ev.load_test : ev.load_test) continue;
+      const isLoadTestEvent = ev.load_test === true;
+      if (isLoadTestViewer ? !isLoadTestEvent : isLoadTestEvent) continue;
 
       const { genesis_block_hash, load_test: _lt, ...safeEvent } = ev;
 
@@ -246,7 +247,8 @@ router.get(
 
       const event = JSON.parse(raw);
 
-      if (isLoadTestViewer ? !event.load_test : event.load_test) {
+      const isLoadTestEvent = event.load_test === true;
+      if (isLoadTestViewer ? !isLoadTestEvent : isLoadTestEvent) {
         return res.status(404).json({ error: 'Event not found' });
       }
 

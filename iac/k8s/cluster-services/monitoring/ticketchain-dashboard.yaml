@@ -460,10 +460,17 @@ data:
           "targets": [
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "kube_deployment_status_replicas_available{namespace=\"g-404\"}",
+              "expr": "kube_deployment_status_replicas_available{namespace=\"g-404\", deployment!=\"redis\"}",
               "instant": true,
               "legendFormat": "{{deployment}}",
               "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "kube_pod_status_ready{namespace=\"g-404\", pod=~\"redis.*\", condition=\"true\"}",
+              "instant": true,
+              "legendFormat": "{{pod}}",
+              "refId": "B"
             }
           ],
           "title": "Estado de pods — namespace g-404",
