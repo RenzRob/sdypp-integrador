@@ -5,7 +5,7 @@ metadata:
   namespace: g-404
 data:
   # Conexiones internas (no sensibles)
-  REDIS_URL: "redis://redis:6379"
+  REDIS_SENTINEL_HOSTS: "redis-sentinel-0.redis-sentinel:26379,redis-sentinel-1.redis-sentinel:26379,redis-sentinel-2.redis-sentinel:26379"
   RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672"
   # MinIO (no sensible)
   MINIO_ENDPOINT: "minio"

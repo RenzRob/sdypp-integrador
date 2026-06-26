@@ -9,6 +9,7 @@ from collections import Counter
 
 import pika
 import redis
+from redis.sentinel import Sentinel as RedisSentinel
 
 from blockchain import verify_block
 
@@ -16,6 +17,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [NCT] %(levelname)s 
 logger = logging.getLogger(__name__)
 
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
+REDIS_SENTINEL_HOSTS = os.environ.get("REDIS_SENTINEL_HOSTS")
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672")
 MINING_DIFFICULTY = int(os.environ.get("MINING_DIFFICULTY", "3"))
 MAX_TX_PER_BLOCK = int(os.environ.get("MAX_TX_PER_BLOCK", "10"))
@@ -40,7 +42,15 @@ class NCT:
         self.channel_publish = None
 
     def _connect_redis(self) -> redis.Redis:
-        r = redis.from_url(REDIS_URL, decode_responses=True)
+        if REDIS_SENTINEL_HOSTS:
+            sentinels = []
+            for h in REDIS_SENTINEL_HOSTS.split(','):
+                host, port = h.strip().split(':')
+                sentinels.append((host, int(port)))
+            sentinel = RedisSentinel(sentinels, socket_timeout=1)
+            r = sentinel.master_for('mymaster', decode_responses=True)
+        else:
+            r = redis.from_url(REDIS_URL, decode_responses=True)
         for attempt in range(10):
             try:
                 r.ping()

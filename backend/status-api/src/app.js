@@ -63,12 +63,21 @@ function pingService(name, url) {
 async function checkRedis() {
   let redisClient = null;
   try {
-    redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-      maxRetriesPerRequest: 1,
-      connectTimeout: 3000,
-      lazyConnect: true,
-    });
-    await redisClient.connect();
+    const sentinelHosts = process.env.REDIS_SENTINEL_HOSTS;
+    if (sentinelHosts) {
+      const sentinels = sentinelHosts.split(',').map(h => {
+        const [host, port] = h.trim().split(':');
+        return { host, port: parseInt(port) || 26379 };
+      });
+      redisClient = new Redis({ sentinels, name: 'mymaster', maxRetriesPerRequest: 1, connectTimeout: 3000 });
+    } else {
+      redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+        maxRetriesPerRequest: 1,
+        connectTimeout: 3000,
+        lazyConnect: true,
+      });
+      await redisClient.connect();
+    }
     await redisClient.ping();
     await redisClient.quit();
     return { status: 'ok' };
