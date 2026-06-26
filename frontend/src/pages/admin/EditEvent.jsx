@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
-import { Save, ArrowLeft, Calendar, Ban, CheckCircle, AlertCircle, Edit3 } from 'lucide-react'
+import { Save, ArrowLeft, Calendar, Ban, CheckCircle, AlertCircle, Edit3, Archive } from 'lucide-react'
 
 export default function EditEvent() {
   const { id } = useParams()
@@ -11,6 +11,7 @@ export default function EditEvent() {
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [finalizing, setFinalizing] = useState(false)
   const [error, setError] = useState('')
   const [date, setDate] = useState('')
   const [status, setStatus] = useState('')
@@ -48,6 +49,19 @@ export default function EditEvent() {
     } catch (err) {
       setError(err.message || 'No se pudo guardar el evento')
     } finally { setSaving(false) }
+  }
+
+  const handleFinalize = async () => {
+    if (!window.confirm('¿Estás seguro? Esta acción finalizará el evento y archivará su blockchain en cold storage. No se podrán realizar más operaciones.')) return
+    setError(''); setFinalizing(true)
+    try {
+      const res = await authFetch(`/api/events/${id}/finalize`, { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || data.detail || `Error ${res.status}`)
+      navigate(`/events/${id}`)
+    } catch (err) {
+      setError(err.message || 'No se pudo finalizar el evento')
+    } finally { setFinalizing(false) }
   }
 
   if (loading) {
@@ -120,14 +134,34 @@ export default function EditEvent() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between mt-6">
-            <button type="button" className="btn btn-ghost" onClick={() => navigate(`/events/${id}`)} disabled={saving}>
-              <ArrowLeft className="w-4 h-4" /> Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
-              {saving ? <><span className="spinner-sm" /> Guardando…</> : <><Save className="w-5 h-5" /> Guardar cambios</>}
-            </button>
-          </div>
+          {status !== 'completed' && (
+            <div className="flex items-center justify-between mt-6">
+              <button type="button" className="btn btn-ghost" onClick={() => navigate(`/events/${id}`)} disabled={saving}>
+                <ArrowLeft className="w-4 h-4" /> Cancelar
+              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className="btn border border-error/30 text-error hover:bg-error/10"
+                  onClick={handleFinalize}
+                  disabled={finalizing || saving}
+                >
+                  {finalizing ? <><span className="spinner-sm" /> Archivando…</> : <><Archive className="w-4 h-4" /> Finalizar evento</>}
+                </button>
+                <button type="submit" className="btn btn-primary btn-lg" disabled={saving}>
+                  {saving ? <><span className="spinner-sm" /> Guardando…</> : <><Save className="w-5 h-5" /> Guardar cambios</>}
+                </button>
+              </div>
+            </div>
+          )}
+          {status === 'completed' && (
+            <div className="flex items-center justify-between mt-6">
+              <button type="button" className="btn btn-ghost" onClick={() => navigate(`/events/${id}`)}>
+                <ArrowLeft className="w-4 h-4" /> Volver
+              </button>
+              <span className="text-sm text-[#71717a]">Evento finalizado</span>
+            </div>
+          )}
         </form>
       </div>
     </main>

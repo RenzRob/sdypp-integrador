@@ -30,14 +30,18 @@ export default function EventCard({ event }) {
   const available = event.available_tickets ?? event.tickets_disponibles ?? 0
   const total = event.total_tickets ?? 0
   const suspended = event.status === 'suspended'
+  const completed = event.status === 'completed'
+  const past = completed || (event.date && new Date(event.date).getTime() <= Date.now())
 
   const ticketsLabel =
-    suspended ? 'Suspendido'
+    past ? 'Finalizado'
+    : suspended ? 'Suspendido'
     : available === 0 ? 'Agotado'
     : `${available} / ${total}`
 
   const ticketsBadgeClass =
-    suspended ? 'bg-warning/10 text-warning'
+    past ? 'bg-white/[0.04] text-[#71717a]'
+    : suspended ? 'bg-warning/10 text-warning'
     : available === 0 ? 'bg-error/10 text-error'
     : available <= Math.max(1, Math.floor(total * 0.1)) ? 'bg-warning/10 text-warning'
     : 'bg-white/[0.04] text-[#a1a1aa]'
@@ -97,7 +101,7 @@ export default function EventCard({ event }) {
             <span className="text-lg font-bold bg-gradient-to-r from-[#6c63ff] to-[#8b5cf6] bg-clip-text text-transparent">
               {formatCurrency(event.price)}
             </span>
-            {!suspended && available > 0 && (
+            {!suspended && !past && available > 0 && (
               <span className="text-xs text-[#71717a]">
                 {available} / {total} disponibles
               </span>

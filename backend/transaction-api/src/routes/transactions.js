@@ -14,6 +14,15 @@ const router = express.Router();
 
 const MP_API = 'https://api.mercadopago.com';
 
+function isEventPast(event) {
+  if (!event?.date) return false;
+  return Date.now() >= new Date(event.date).getTime();
+}
+
+function isEventInactive(event) {
+  return event.status === 'suspended' || event.status === 'completed' || isEventPast(event);
+}
+
 // Cliente MP. Lanza error claro si falta el token (evita 500 opacos).
 function mpClient() {
   const accessToken = process.env.MP_ACCESS_TOKEN;
@@ -163,6 +172,9 @@ router.post(
       if (event.status === 'suspended') {
         return res.status(409).json({ error: 'Event is suspended' });
       }
+      if (event.status === 'completed' || isEventPast(event)) {
+        return res.status(409).json({ error: 'Event has ended' });
+      }
 
       // If nominada, check user doesn't already own a ticket for this event
       if (event.rules && event.rules.nominada) {
@@ -301,6 +313,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
       if (event.rules?.nominada) return res.status(409).json({ error: 'Nominada event: resale not allowed' });
 
       const owner = await redis.get(`ticket:${event_id}:${ticket_id}:owner`);
@@ -420,6 +433,7 @@ router.post(
       const event = JSON.parse(rawEvent);
 
       if (event.status === 'suspended') return res.status(409).json({ error: 'Event is suspended' });
+      if (event.status === 'completed' || isEventPast(event)) return res.status(409).json({ error: 'Event has ended' });
 
       const raw = await redis.hget(`event:${event_id}:listings`, ticket_id);
       if (!raw) return res.status(404).json({ error: 'Listing not found' });
@@ -500,6 +514,9 @@ router.post(
 
       if (event.status === 'suspended') {
         return res.status(409).json({ error: 'Event is suspended' });
+      }
+      if (event.status === 'completed' || isEventPast(event)) {
+        return res.status(409).json({ error: 'Event has ended' });
       }
 
       if (event.rules && event.rules.nominada) {
@@ -595,6 +612,7 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
       result.push({
         event_id,
         event_name: event.name,
+        event_date: event.date,
         event_rules: event.rules,
         event_price: event.price,
         event_status: event.status,
