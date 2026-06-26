@@ -1,0 +1,24 @@
+backend/transaction-api/src/routes/transactions.js
+  s_9fc08bbc190577::t_19e4be75a1c930 15-140
+  s_9fc08bbc190577::t_6760cb494d587c 455-460,464
+  s_9fc08bbc190577::t_cb6faf75a4f3bc 210-217,221
+  s_9fc08bbc190577::t_3b1324a3e98b41 233-234,236-237,240-245,250-253,257-258,260-263,265-266,268-271,274,276-277
+frontend/src/pages/EventDetail.jsx
+  s_9fc08bbc190577::t_75c084c0bdde18 119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "f621d55c635ee2ea058ed8f7bc5725544f8e8fc7",
+  "prompts": {},
+  "sessions": {
+    "s_9fc08bbc190577": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d6cc3134-6ee1-4595-bcbb-e759e5f20f18",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
