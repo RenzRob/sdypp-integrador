@@ -116,6 +116,7 @@ export default function EventDetail() {
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data.error || data.detail || `Error ${res.status}`)
+      if (data.init_point) { window.location.href = data.init_point; return }
       setBuyMessage(`Entrada ${listing.ticket_id} comprada — confirmación pendiente en blockchain.`)
       fetchEvent(); fetchBlocks(); fetchListings()
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
