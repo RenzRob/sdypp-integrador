@@ -38,13 +38,13 @@ data:
           "targets": [
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum(rate(http_requests_total{job=\"transaction-api\"}[1m])) * 60 or vector(0)",
+              "expr": "sum(rate(http_requests_total{job=\"transaction-api\",route!=\"/metrics\"}[1m])) * 60 or vector(0)",
               "legendFormat": "total",
               "refId": "A"
             },
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum by (route) (rate(http_requests_total{job=\"transaction-api\"}[1m])) * 60",
+              "expr": "sum by (route) (rate(http_requests_total{job=\"transaction-api\",route!=\"/metrics\"}[1m])) * 60 > 0",
               "legendFormat": "{{route}}",
               "refId": "B"
             }
@@ -71,13 +71,13 @@ data:
           "targets": [
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum(rate(http_requests_total{job=\"access-control\"}[1m])) * 60 or vector(0)",
+              "expr": "sum(rate(http_requests_total{job=\"access-control\",route!=\"/metrics\"}[1m])) * 60 or vector(0)",
               "legendFormat": "total",
               "refId": "A"
             },
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum by (route) (rate(http_requests_total{job=\"access-control\"}[1m])) * 60",
+              "expr": "sum by (route) (rate(http_requests_total{job=\"access-control\",route!=\"/metrics\"}[1m])) * 60 > 0",
               "legendFormat": "{{route}}",
               "refId": "B"
             }
@@ -108,13 +108,13 @@ data:
           "targets": [
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum(rate(http_requests_total{job=\"transaction-api\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
+              "expr": "sum(rate(http_requests_total{job=\"transaction-api\",route!=\"/metrics\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
               "legendFormat": "transaction-api 5xx",
               "refId": "A"
             },
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum(rate(http_requests_total{job=\"access-control\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
+              "expr": "sum(rate(http_requests_total{job=\"access-control\",route!=\"/metrics\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
               "legendFormat": "access-control 5xx",
               "refId": "B"
             }
@@ -141,7 +141,7 @@ data:
           "targets": [
             {
               "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "sum by (status_code) (rate(http_requests_total{job=~\"transaction-api|access-control\"}[1m])) * 60",
+              "expr": "sum by (status_code) (rate(http_requests_total{job=~\"transaction-api|access-control\",route!=\"/metrics\"}[1m])) * 60 > 0",
               "legendFormat": "HTTP {{status_code}}",
               "refId": "A"
             }
@@ -152,6 +152,152 @@ data:
         {
           "collapsed": false,
           "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17},
+          "id": 9,
+          "title": "RabbitMQ — Colas",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18},
+          "id": 10,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages_ready{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "ready",
+              "refId": "B"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages_unacked{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "unacked",
+              "refId": "C"
+            }
+          ],
+          "title": "Cola: transactions_q  (depth=0 es normal si el sistema procesa rápido)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18},
+          "id": 11,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages{queue=\"mining_gateway_q\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages_ready{queue=\"mining_gateway_q\"} or vector(0)",
+              "legendFormat": "ready",
+              "refId": "B"
+            }
+          ],
+          "title": "Cola: mining_gateway_q",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18},
+          "id": 12,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_detailed_queue_messages{queue=\"nct_results_q\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            }
+          ],
+          "title": "Cola: nct_results_q",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+          "id": 18,
+          "title": "Throughput de colas",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 15, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "ops"
+            }
+          },
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 27},
+          "id": 19,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rate(rabbitmq_detailed_queue_process_reductions_total{queue=\"transactions_q\"}[1m])",
+              "legendFormat": "transactions_q",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rate(rabbitmq_detailed_queue_process_reductions_total{queue=\"nct_results_q\"}[1m])",
+              "legendFormat": "nct_results_q",
+              "refId": "B"
+            }
+          ],
+          "title": "Operaciones por cola / seg",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 35},
           "id": 6,
           "title": "CPU & Memoria — APIs",
           "type": "row"
@@ -166,7 +312,7 @@ data:
               "unit": "short"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
           "id": 7,
           "options": {
             "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
@@ -193,7 +339,7 @@ data:
               "unit": "bytes"
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
           "id": 8,
           "options": {
             "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
@@ -212,113 +358,7 @@ data:
         },
         {
           "collapsed": false,
-          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
-          "id": 9,
-          "title": "RabbitMQ — Colas",
-          "type": "row"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
-              "noValue": "0",
-              "unit": "short"
-            }
-          },
-          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 27},
-          "id": 10,
-          "options": {
-            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages{queue=\"transactions_q\"} or vector(0)",
-              "legendFormat": "total",
-              "refId": "A"
-            },
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages_ready{queue=\"transactions_q\"} or vector(0)",
-              "legendFormat": "ready",
-              "refId": "B"
-            },
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages_unacked{queue=\"transactions_q\"} or vector(0)",
-              "legendFormat": "unacked",
-              "refId": "C"
-            }
-          ],
-          "title": "Cola: transactions_q",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
-              "noValue": "0",
-              "unit": "short"
-            }
-          },
-          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 27},
-          "id": 11,
-          "options": {
-            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages{queue=\"mining_queue\"} or vector(0)",
-              "legendFormat": "total",
-              "refId": "A"
-            },
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages_ready{queue=\"mining_queue\"} or vector(0)",
-              "legendFormat": "ready",
-              "refId": "B"
-            }
-          ],
-          "title": "Cola: mining_queue",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {"type": "prometheus", "uid": "prometheus"},
-          "fieldConfig": {
-            "defaults": {
-              "color": {"mode": "palette-classic"},
-              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
-              "noValue": "0",
-              "unit": "short"
-            }
-          },
-          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 27},
-          "id": 12,
-          "options": {
-            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
-            "tooltip": {"mode": "multi", "sort": "desc"}
-          },
-          "targets": [
-            {
-              "datasource": {"type": "prometheus", "uid": "prometheus"},
-              "expr": "rabbitmq_queue_messages{queue=\"nct_results_q\"} or vector(0)",
-              "legendFormat": "total",
-              "refId": "A"
-            }
-          ],
-          "title": "Cola: nct_results_q",
-          "type": "timeseries"
-        },
-        {
-          "collapsed": false,
-          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 35},
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 44},
           "id": 13,
           "title": "Escalabilidad & Salud",
           "type": "row"
@@ -334,7 +374,7 @@ data:
               "decimals": 0
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 45},
           "id": 14,
           "options": {
             "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
@@ -368,7 +408,7 @@ data:
               "decimals": 0
             }
           },
-          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 45},
           "id": 15,
           "options": {
             "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
@@ -384,6 +424,50 @@ data:
           ],
           "title": "Reinicios de pods (últimos 30m)",
           "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [
+                {
+                  "type": "value",
+                  "options": {
+                    "0": {"text": "DOWN", "color": "red", "index": 0},
+                    "1": {"text": "UP", "color": "green", "index": 1}
+                  }
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {"color": "red", "value": null},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            }
+          },
+          "gridPos": {"h": 7, "w": 24, "x": 0, "y": 53},
+          "id": 17,
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "orientation": "auto",
+            "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+            "textMode": "value_and_name"
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "kube_deployment_status_replicas_available{namespace=\"g-404\"}",
+              "instant": true,
+              "legendFormat": "{{deployment}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Estado de pods — namespace g-404",
+          "type": "stat"
         }
       ],
       "refresh": "10s",
@@ -394,5 +478,5 @@ data:
       "timezone": "browser",
       "title": "TicketChain — Stress Test",
       "uid": "ticketchain-stress",
-      "version": 2
+      "version": 10
     }

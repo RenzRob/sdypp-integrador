@@ -39,6 +39,8 @@ kind: Service
 metadata:
   name: access-control
   namespace: g-404
+  labels:
+    app: access-control
 spec:
   type: ClusterIP
   selector:

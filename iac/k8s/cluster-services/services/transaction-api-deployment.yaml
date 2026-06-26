@@ -40,6 +40,8 @@ kind: Service
 metadata:
   name: transaction-api
   namespace: g-404
+  labels:
+    app: transaction-api
 spec:
   type: ClusterIP
   selector:

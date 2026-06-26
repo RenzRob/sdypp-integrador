@@ -61,6 +61,8 @@ kind: Service
 metadata:
   name: rabbitmq
   namespace: g-404
+  labels:
+    app: rabbitmq
 spec:
   type: ClusterIP
   selector:
