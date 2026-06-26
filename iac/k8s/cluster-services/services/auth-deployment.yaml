@@ -51,6 +51,16 @@ spec:
                 secretKeyRef:
                   name: ticketchain-secrets
                   key: ADMIN_PASSWORD
+            - name: SCANNER_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: SCANNER_EMAIL
+            - name: SCANNER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: SCANNER_PASSWORD
 ---
 apiVersion: v1
 kind: Service
