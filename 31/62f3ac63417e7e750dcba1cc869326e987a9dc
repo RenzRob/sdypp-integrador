@@ -1,0 +1,26 @@
+backend/event-registry/src/routes/events.js
+  s_62cf0641cca74b::t_865ae2a66b3ed9 92-93
+  s_62cf0641cca74b::t_d90d4e06fd4c06 227-228
+docs/redis-cluster-falla.md
+  s_62cf0641cca74b::t_e15698729ba19f 1-129
+iac/k8s/cluster-services/monitoring/ticketchain-dashboard.yaml
+  s_62cf0641cca74b::t_c906215a1e6731 463,467-473
+iac/k8s/cluster-services/infrastructure/redis-deployment.yaml
+  s_62cf0641cca74b::t_7c17f196b854b7 162-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "3162f3ac63417e7e750dcba1cc869326e987a9dc",
+  "prompts": {},
+  "sessions": {
+    "s_62cf0641cca74b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c50ef156-ba2d-4a80-a11c-691d01c726a3",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
