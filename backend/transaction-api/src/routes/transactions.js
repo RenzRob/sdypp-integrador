@@ -371,24 +371,36 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
     const entries = await redis.smembers(`user:${req.user.wallet_address}:tickets`);
     if (!entries || entries.length === 0) return res.json([]);
 
+    const tickets = entries.map(e => { const [event_id, ticket_id] = e.split(':'); return { event_id, ticket_id }; });
+
+    // Batch 1: fetch all unique events
+    const uniqueEventIds = [...new Set(tickets.map(t => t.event_id))];
+    const eventPipeline = redis.pipeline();
+    for (const id of uniqueEventIds) eventPipeline.get(`event:${id}`);
+    const eventResults = await eventPipeline.exec();
     const eventCache = {};
+    uniqueEventIds.forEach((id, i) => {
+      const raw = eventResults[i][1];
+      eventCache[id] = raw ? JSON.parse(raw) : null;
+    });
+
+    // Batch 2: fetch resales + listing + checked_in for all tickets
+    const ticketPipeline = redis.pipeline();
+    for (const { event_id, ticket_id } of tickets) {
+      ticketPipeline.get(`ticket:${event_id}:${ticket_id}:resales`);
+      ticketPipeline.hget(`event:${event_id}:listings`, ticket_id);
+      ticketPipeline.get(`ticket:${event_id}:${ticket_id}:checked_in`);
+    }
+    const ticketResults = await ticketPipeline.exec();
+
     const result = [];
-
-    for (const entry of entries) {
-      const [event_id, ticket_id] = entry.split(':');
-
-      if (!eventCache[event_id]) {
-        const raw = await redis.get(`event:${event_id}`);
-        eventCache[event_id] = raw ? JSON.parse(raw) : null;
-      }
+    tickets.forEach(({ event_id, ticket_id }, i) => {
       const event = eventCache[event_id];
-      if (!event) continue;
-
-      const resales    = await redis.get(`ticket:${event_id}:${ticket_id}:resales`);
-      const listingRaw = await redis.hget(`event:${event_id}:listings`, ticket_id);
+      if (!event) return;
+      const resales    = ticketResults[i * 3][1];
+      const listingRaw = ticketResults[i * 3 + 1][1];
+      const checkedIn  = ticketResults[i * 3 + 2][1];
       const listing    = listingRaw ? JSON.parse(listingRaw) : null;
-      const checkedIn  = await redis.get(`ticket:${event_id}:${ticket_id}:checked_in`);
-
       result.push({
         event_id,
         event_name: event.name,
@@ -403,7 +415,7 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
         checked_in: !!checkedIn,
         checked_in_at: checkedIn || null,
       });
-    }
+    });
 
     return res.json(result);
   } catch (err) {
