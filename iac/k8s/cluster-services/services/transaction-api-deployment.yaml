@@ -26,6 +26,14 @@ spec:
                 name: ticketchain-config
             - secretRef:
                 name: ticketchain-secrets
+          resources:
+            # "m" = millicores: 1000m = 1 CPU. 100m = 10% de un núcleo (idle), 500m = 50% (límite máximo)
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
