@@ -1,0 +1,398 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ticketchain-stress-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+data:
+  ticketchain-stress.json: |
+    {
+      "annotations": {"list": []},
+      "editable": true,
+      "graphTooltip": 1,
+      "panels": [
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+          "id": 1,
+          "title": "Tráfico HTTP",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1},
+          "id": 2,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum(rate(http_requests_total{job=\"transaction-api\"}[1m])) * 60 or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum by (route) (rate(http_requests_total{job=\"transaction-api\"}[1m])) * 60",
+              "legendFormat": "{{route}}",
+              "refId": "B"
+            }
+          ],
+          "title": "RPM — transaction-api",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1},
+          "id": 3,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum(rate(http_requests_total{job=\"access-control\"}[1m])) * 60 or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum by (route) (rate(http_requests_total{job=\"access-control\"}[1m])) * 60",
+              "legendFormat": "{{route}}",
+              "refId": "B"
+            }
+          ],
+          "title": "RPM — access-control",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            },
+            "overrides": [
+              {"matcher": {"id": "byName", "options": "transaction-api 5xx"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
+              {"matcher": {"id": "byName", "options": "access-control 5xx"}, "properties": [{"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}]}
+            ]
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9},
+          "id": 4,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum(rate(http_requests_total{job=\"transaction-api\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
+              "legendFormat": "transaction-api 5xx",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum(rate(http_requests_total{job=\"access-control\",status_code=~\"5..\"}[1m])) * 60 or vector(0)",
+              "legendFormat": "access-control 5xx",
+              "refId": "B"
+            }
+          ],
+          "title": "Errores 5xx / min",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 9},
+          "id": 5,
+          "options": {
+            "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "sum by (status_code) (rate(http_requests_total{job=~\"transaction-api|access-control\"}[1m])) * 60",
+              "legendFormat": "HTTP {{status_code}}",
+              "refId": "A"
+            }
+          ],
+          "title": "Requests por status code (ambas APIs)",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17},
+          "id": 6,
+          "title": "CPU & Memoria — APIs",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+          "id": 7,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rate(container_cpu_usage_seconds_total{namespace=\"g-404\",container=~\"transaction-api|access-control\"}[2m]) * 1000",
+              "legendFormat": "{{container}} ({{pod}})",
+              "refId": "A"
+            }
+          ],
+          "title": "CPU (millicores)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "bytes"
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+          "id": 8,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "container_memory_working_set_bytes{namespace=\"g-404\",container=~\"transaction-api|access-control\"}",
+              "legendFormat": "{{container}} ({{pod}})",
+              "refId": "A"
+            }
+          ],
+          "title": "Memoria (working set)",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+          "id": 9,
+          "title": "RabbitMQ — Colas",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 27},
+          "id": 10,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages_ready{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "ready",
+              "refId": "B"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages_unacked{queue=\"transactions_q\"} or vector(0)",
+              "legendFormat": "unacked",
+              "refId": "C"
+            }
+          ],
+          "title": "Cola: transactions_q",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 27},
+          "id": 11,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages{queue=\"mining_queue\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages_ready{queue=\"mining_queue\"} or vector(0)",
+              "legendFormat": "ready",
+              "refId": "B"
+            }
+          ],
+          "title": "Cola: mining_queue",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 20, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short"
+            }
+          },
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 27},
+          "id": 12,
+          "options": {
+            "legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "rabbitmq_queue_messages{queue=\"nct_results_q\"} or vector(0)",
+              "legendFormat": "total",
+              "refId": "A"
+            }
+          ],
+          "title": "Cola: nct_results_q",
+          "type": "timeseries"
+        },
+        {
+          "collapsed": false,
+          "gridPos": {"h": 1, "w": 24, "x": 0, "y": 35},
+          "id": 13,
+          "title": "Escalabilidad & Salud",
+          "type": "row"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short",
+              "decimals": 0
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 36},
+          "id": 14,
+          "options": {
+            "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "none"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "kube_horizontalpodautoscaler_status_current_replicas{namespace=\"g-404\"}",
+              "legendFormat": "{{horizontalpodautoscaler}} (actual)",
+              "refId": "A"
+            },
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "kube_horizontalpodautoscaler_spec_max_replicas{namespace=\"g-404\"}",
+              "legendFormat": "{{horizontalpodautoscaler}} (max)",
+              "refId": "B"
+            }
+          ],
+          "title": "HPA — Réplicas activas",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"fillOpacity": 10, "lineWidth": 2, "spanNulls": true},
+              "noValue": "0",
+              "unit": "short",
+              "decimals": 0
+            }
+          },
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 36},
+          "id": 15,
+          "options": {
+            "legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom"},
+            "tooltip": {"mode": "multi", "sort": "desc"}
+          },
+          "targets": [
+            {
+              "datasource": {"type": "prometheus", "uid": "prometheus"},
+              "expr": "increase(kube_pod_container_status_restarts_total{namespace=\"g-404\",container=~\"transaction-api|access-control\"}[30m])",
+              "legendFormat": "{{container}} ({{pod}})",
+              "refId": "A"
+            }
+          ],
+          "title": "Reinicios de pods (últimos 30m)",
+          "type": "timeseries"
+        }
+      ],
+      "refresh": "10s",
+      "schemaVersion": 38,
+      "tags": ["ticketchain", "stress-test"],
+      "time": {"from": "now-30m", "to": "now"},
+      "timepicker": {},
+      "timezone": "browser",
+      "title": "TicketChain — Stress Test",
+      "uid": "ticketchain-stress",
+      "version": 2
+    }

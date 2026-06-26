@@ -31,8 +31,7 @@ prometheus:
               storage: 5Gi
     # Permite descubrir ServiceMonitors de cualquier namespace (no solo monitoring)
     serviceMonitorSelectorNilUsesHelmValues: false
-    serviceMonitorNamespaceSelector:
-      any: true
+    serviceMonitorNamespaceSelector: {}
     serviceMonitorSelector: {}
 
 # Deshabilitar componentes que no necesitamos para reducir uso de recursos
