@@ -35,10 +35,9 @@ function requireAdmin(req, res, next) {
 function requireOptionalAuth(req, res, next) {
   req.user = null;
   const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
-  }
-  const token = authHeader.slice(7);
+  const token = req.cookies?.token ||
+    (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
+  if (!token) return next();
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = {
