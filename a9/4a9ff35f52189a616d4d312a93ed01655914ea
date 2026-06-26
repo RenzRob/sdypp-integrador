@@ -1,0 +1,19 @@
+backend/event-registry/src/lib/auth.js
+  s_62568c0587e620::t_5b98c32dfe8e5f 38-40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "a94a9ff35f52189a616d4d312a93ed01655914ea",
+  "prompts": {},
+  "sessions": {
+    "s_62568c0587e620": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "942a1cd2-2d95-410b-a000-0281163c7398",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
