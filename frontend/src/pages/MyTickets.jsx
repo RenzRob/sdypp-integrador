@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Ticket, Wallet, Repeat, X, RefreshCw, Tag, CheckCircle, AlertCircle, ArrowRight, QrCode } from 'lucide-react'
+import { Ticket, Wallet, Repeat, X, RefreshCw, Tag, CheckCircle, AlertCircle, ArrowRight, QrCode, ScanLine } from 'lucide-react'
 
 function formatCurrency(amount) {
   if (amount == null) return '-'
@@ -309,10 +309,18 @@ export default function MyTickets() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setQrTarget(ticket)} title="Ver QR">
-                      <QrCode className="w-4 h-4 text-[#a1a1aa]" />
-                    </button>
-                    {isEventPast(ticket)
+                    {ticket.checked_in ? (
+                      <div className="btn btn-ghost btn-sm btn-icon opacity-30 cursor-not-allowed" title="Esta entrada ya fue escaneada">
+                        <QrCode className="w-4 h-4" />
+                      </div>
+                    ) : (
+                      <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setQrTarget(ticket)} title="Ver QR">
+                        <QrCode className="w-4 h-4 text-[#a1a1aa]" />
+                      </button>
+                    )}
+                    {ticket.checked_in
+                      ? <span className="badge bg-[#22c55e]/10 text-[#22c55e] flex items-center gap-1"><ScanLine className="w-3 h-3" />Escaneada</span>
+                      : isEventPast(ticket)
                       ? <span className="badge bg-white/[0.04] text-[#71717a]">Finalizado</span>
                       : ticket.listed
                       ? <span className="badge bg-[#6c63ff]/10 text-[#6c63ff]">En venta · {formatCurrency(ticket.listing_price)}</span>
@@ -324,6 +332,12 @@ export default function MyTickets() {
                 <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-[#71717a] mb-3">
                   <span className="flex items-center gap-1"><Wallet className="w-3 h-3" /> {ticket.owner_wallet?.slice(0, 16) || ticket.wallet_address?.slice(0, 16) || '—'}…</span>
                   <span className="flex items-center gap-1"><Repeat className="w-3 h-3" /> Reventas: {ticket.resale_count ?? 0}{ticket.event_rules?.max_reventas != null ? ` / ${ticket.event_rules.max_reventas}` : ''}</span>
+                  {ticket.checked_in && ticket.checked_in_at && (
+                    <span className="flex items-center gap-1 text-[#22c55e]/70">
+                      <ScanLine className="w-3 h-3" />
+                      Escaneada {new Date(ticket.checked_in_at).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between gap-2 flex-wrap">

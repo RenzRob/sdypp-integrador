@@ -371,9 +371,10 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
       const event = eventCache[event_id];
       if (!event) continue;
 
-      const resales = await redis.get(`ticket:${event_id}:${ticket_id}:resales`);
+      const resales    = await redis.get(`ticket:${event_id}:${ticket_id}:resales`);
       const listingRaw = await redis.hget(`event:${event_id}:listings`, ticket_id);
-      const listing = listingRaw ? JSON.parse(listingRaw) : null;
+      const listing    = listingRaw ? JSON.parse(listingRaw) : null;
+      const checkedIn  = await redis.get(`ticket:${event_id}:${ticket_id}:checked_in`);
 
       result.push({
         event_id,
@@ -386,6 +387,8 @@ router.get('/my-tickets', requireAuth, async (req, res) => {
         resale_count: parseInt(resales || '0'),
         listed: !!listing,
         listing_price: listing?.price ?? null,
+        checked_in: !!checkedIn,
+        checked_in_at: checkedIn || null,
       });
     }
 
