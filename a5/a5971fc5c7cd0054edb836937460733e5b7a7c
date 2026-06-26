@@ -1,0 +1,27 @@
+docs/infraestructura-completa.md
+  s_a7572fcb036e5e::t_a522b481e39feb 1092-1093
+  s_a7572fcb036e5e::t_b0c62877733772 1005,1007
+  s_a7572fcb036e5e::t_c59a70bb2e1690 1102,1104-1112,1130-1151
+iac/k8s/cluster-services/config/configmap.yaml
+  s_a7572fcb036e5e::t_60a1678bfae7a6 18
+backend/nct/nct.py
+  s_a7572fcb036e5e::t_c61166d09d2ea2 21
+docs/comandos.md
+  s_a7572fcb036e5e::t_b4d2144e832574 243-256
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "a5a5971fc5c7cd0054edb836937460733e5b7a7c",
+  "prompts": {},
+  "sessions": {
+    "s_a7572fcb036e5e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "afee2941-19bc-45fa-bfcc-19e7cdb41419",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
