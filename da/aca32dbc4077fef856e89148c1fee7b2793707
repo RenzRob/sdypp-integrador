@@ -1,0 +1,21 @@
+backend/transaction-api/src/routes/transactions.js
+  s_8717bdb3691680::t_eb23d57672c893 14,16,19-21,25-28,31,35,37,42-43,45-47,49-51,54,56-59,62,64-68,70-74,78,81,86-87,89-91,94,97,100-107,111-112,117,122-123,154-206,211,214,220,223,225,227,236,240,242,246-247,259,262,267-277,279-294,297-298,300-308,310-312,314-320,322-325,328-330,332,343,394,426,438-440,450,462,468,471-472,475-476,481,488,493,524-525,530,616,627-628,636
+iac/k8s/cluster-services/services/transaction-api-deployment.yaml
+  s_8717bdb3691680::t_cc0db3984d1d06 21
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "daaca32dbc4077fef856e89148c1fee7b2793707",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
