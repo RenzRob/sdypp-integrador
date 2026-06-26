@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379")
 RABBITMQ_URL = os.environ.get("RABBITMQ_URL", "amqp://guest:guest@localhost:5672")
 MINING_DIFFICULTY = int(os.environ.get("MINING_DIFFICULTY", "3"))
-MAX_TX_PER_BLOCK = int(os.environ.get("MAX_TX_PER_BLOCK", "5"))
+MAX_TX_PER_BLOCK = int(os.environ.get("MAX_TX_PER_BLOCK", "10"))
 BLOCK_TIMEOUT = float(os.environ.get("BLOCK_TIMEOUT", "10"))
 
 

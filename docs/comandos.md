@@ -240,3 +240,17 @@ kubectl logs -f deployment/mining-gateway -n g-404
 # Reiniciar para tomar configmap/secret nuevos
 kubectl --kubeconfig=renzo.yaml rollout restart deployment/transaction-pool -n g-404
 ```
+
+### HPA (Horizontal Pod Autoscaler)
+
+```bash
+# Ver estado de todos los HPAs (CPU actual vs target, réplicas)
+kubectl get hpa -n g-404
+
+# Watch en tiempo real (útil durante pruebas de carga)
+kubectl get hpa -n g-404 -w
+
+# Detalle de un HPA específico (eventos de scaling, métricas)
+kubectl describe hpa transaction-api-hpa -n g-404
+kubectl describe hpa access-control-hpa -n g-404
+```

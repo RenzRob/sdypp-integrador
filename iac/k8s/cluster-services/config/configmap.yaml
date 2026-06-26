@@ -15,5 +15,6 @@ data:
   CORS_ORIGIN: "https://ticketchain404.duckdns.org"
   PUBLIC_API_URL: "https://ticketchain404.duckdns.org"
   MINING_DIFFICULTY: "3"
+  MAX_TX_PER_BLOCK: "10"
   NODE_ENV: "production"
   # Modelo PULL: el gateway no llama al TrP (el TrP hace polling). No hace falta TRP_URL.

@@ -1002,7 +1002,9 @@ iac/k8s/
 │   │   ├── auth-deployment.yaml
 │   │   ├── event-registry-deployment.yaml
 │   │   ├── transaction-api-deployment.yaml
+│   │   ├── transaction-api-hpa.yaml
 │   │   ├── access-control-deployment.yaml
+│   │   ├── access-control-hpa.yaml
 │   │   ├── status-api-deployment.yaml
 │   │   ├── nct-deployment.yaml
 │   │   ├── mining-gateway-deployment.yaml
@@ -1087,8 +1089,8 @@ cross-cluster-ca (ambos clusters):
 | minio | — | — | — | — | 3Gi |
 | auth-service | — | — | — | — | — |
 | event-registry | — | — | — | — | — |
-| transaction-api | — | — | — | — | — |
-| access-control | — | — | — | — | — |
+| transaction-api | 100m | 500m | 128Mi | 256Mi | — |
+| access-control | 100m | 500m | 128Mi | 256Mi | — |
 | status-api | — | — | — | — | — |
 | nct | — | — | — | — | — |
 | mining-gateway | — | — | — | — | — |
@@ -1097,8 +1099,17 @@ cross-cluster-ca (ambos clusters):
 | worker-gpu | 500m | 1 | 512Mi | 1Gi + 1 GPU | — |
 | frontend | — | — | — | — | — |
 
-### 10.5 HPA (Worker CPU)
+### 10.5 HPA (Horizontal Pod Autoscaler)
 
+Los tres servicios con carga variable escalan automáticamente por CPU. La unidad `m` es **millicores**: 1000m = 1 CPU. Los `requests` definen el baseline desde el que se calcula el porcentaje; los `limits` son el techo que el pod nunca puede superar.
+
+| Servicio | minReplicas | maxReplicas | Target CPU |
+|---|---|---|---|
+| `worker-cpu` | 1 | 10 | 70% |
+| `transaction-api` | 1 | 4 | 70% |
+| `access-control` | 1 | 4 | 70% |
+
+**worker-cpu** (`iac/k8s/cluster-mining/services/worker-cpu-deployment.yaml`):
 ```yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -1116,7 +1127,28 @@ spec:
           averageUtilization: 70
 ```
 
-Cuando la carga de trabajo de minería supera el 70% de CPU, K8s escala automáticamente hasta 10 réplicas de workers CPU para mantener el throughput.
+**transaction-api** y **access-control** (`iac/k8s/cluster-services/services/*-hpa.yaml`):
+```yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+spec:
+  scaleTargetRef:
+    name: transaction-api   # o access-control
+  minReplicas: 1
+  maxReplicas: 4
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+```
+
+```bash
+# Monitorear HPAs en tiempo real
+kubectl get hpa -n g-404 -w
+```
 
 ---
 
