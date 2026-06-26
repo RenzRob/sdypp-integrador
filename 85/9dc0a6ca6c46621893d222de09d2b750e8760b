@@ -1,0 +1,30 @@
+backend/transaction-api/src/routes/transactions.js
+  s_8717bdb3691680::t_d01c41f7fdfa93 42,90,110,176,274,296
+  s_8717bdb3691680::t_95c46ba90266ca 14-22
+backend/event-registry/src/routes/events.js
+  s_8717bdb3691680::t_a038d91bca03d1 257-260,275-343
+frontend/src/components/EventCard.jsx
+  s_8717bdb3691680::t_23630437007451 33-34,37-38,43-44,104
+frontend/src/pages/EventDetail.jsx
+  s_8717bdb3691680::t_a9f20183b0a0b4 131-132,188-192,236-238,261-263
+frontend/src/pages/MyTickets.jsx
+  s_8717bdb3691680::t_8a3c375c58a566 248-252,255,315-317
+frontend/src/pages/admin/EditEvent.jsx
+  s_8717bdb3691680::t_087f50e626cdb2 4,14,54-66,137-164
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "859dc0a6ca6c46621893d222de09d2b750e8760b",
+  "prompts": {},
+  "sessions": {
+    "s_8717bdb3691680": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0062c90d-cc42-41df-9110-fcd59ffbdce8",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
