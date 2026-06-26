@@ -8,199 +8,8 @@ const jwt = require('jsonwebtoken');
 const redis = require('../lib/redis');
 const { publishTransaction } = require('../lib/rabbitmq');
 const { requireAuth } = require('../lib/auth');
-const { MercadoPagoConfig, Preference } = require('mercadopago');
 
 const router = express.Router();
-const BASE_URL = () => (process.env.PUBLIC_API_URL || 'https://ticketchain404.duckdns.org').replace(/\/$/, '');
-
-// ─── MercadoPago helpers ───────────────────────────────────────────────────
-
-function mpClient() {
-  const token = process.env.MP_ACCESS_TOKEN;
-  if (!token) throw new Error('MP_ACCESS_TOKEN not configured');
-  return new MercadoPagoConfig({ accessToken: token });
-}
-
-async function createCheckoutPreference({ ticket_id, title, price, tx_id, event_id }) {
-  const numericPrice = Number(price);
-  if (!numericPrice || numericPrice <= 0) throw new Error('Invalid price for MP preference');
-
-  const base = BASE_URL();
-  const preference = new Preference(mpClient());
-
-  const data = {
-    items: [
-      {
-        id: ticket_id,
-        title: String(title).slice(0, 256),
-        quantity: 1,
-        unit_price: numericPrice,
-        currency_id: 'ARS',
-      },
-    ],
-    external_reference: tx_id,
-    statement_descriptor: 'TicketChain',
-    notification_url: `${base}/api/transactions/mp/webhook`,
-    back_urls: {
-      success: `${base}/api/transactions/mp/success`,
-      failure: `${base}/events/${event_id}?error=payment_failed`,
-      pending: `${base}/events/${event_id}?error=payment_pending`,
-    },
-    auto_return: 'approved',
-    expires: true,
-    expiration_date_to: new Date(Date.now() + 900_000).toISOString(),
-  };
-
-  const response = await preference.create({ body: data });
-
-  // sandbox_init_point → tokens TEST-*; init_point → producción
-  const url = response.sandbox_init_point || response.init_point;
-  if (!url) throw new Error('MP did not return an init_point — check MP_ACCESS_TOKEN');
-  return url;
-}
-
-// Consulta el pago real en la API de MP (fuente de verdad, nunca el query param).
-async function fetchMpPayment(paymentId) {
-  const token = process.env.MP_ACCESS_TOKEN;
-  if (!token) throw new Error('MP_ACCESS_TOKEN not configured');
-
-  const res = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`MP payment fetch failed (${res.status}): ${body}`);
-  }
-  return res.json();
-}
-
-// Verifica la firma HMAC del webhook (x-signature: ts=...,v1=...).
-// Retorna true si no hay secreto configurado (verificación deshabilitada).
-function verifyMpSignature(req) {
-  const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!secret) return true;
-
-  const signatureHeader = req.headers['x-signature'];
-  if (!signatureHeader) return false;
-
-  const requestId = req.headers['x-request-id'] || '';
-  const dataId = req.query['data.id'] || req.body?.data?.id || '';
-
-  let ts = '', v1 = '';
-  for (const part of signatureHeader.split(',')) {
-    const [k, v] = part.split('=').map(s => s?.trim());
-    if (k === 'ts') ts = v;
-    if (k === 'v1') v1 = v;
-  }
-  if (!ts || !v1) return false;
-
-  const manifest = `id:${dataId};request-id:${requestId};ts:${ts};`;
-  const expected = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
-
-  try {
-    const a = Buffer.from(expected, 'hex');
-    const b = Buffer.from(v1, 'hex');
-    if (a.length !== b.length) return false;
-    return crypto.timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
-
-// Confirma una transacción pagada de forma idempotente.
-// GETDEL garantiza que solo un consumer la procese (evita dobles confirmaciones
-// ante la carrera entre el webhook de MP y el redirect /mp/success).
-async function confirmPaidTransaction(tx_id, paymentInfo) {
-  if (!tx_id || !paymentInfo || paymentInfo.status !== 'approved') return null;
-
-  const rawTx = await redis.getdel(`pending_tx:${tx_id}`);
-  if (!rawTx) return null;
-  const pendingTx = JSON.parse(rawTx);
-
-  // Anti-tampering: el monto realmente pagado debe coincidir con el precio reservado.
-  if (Number(paymentInfo.transaction_amount) !== Number(pendingTx.price)) {
-    console.warn(`[confirm] monto incorrecto tx=${tx_id} pagado=${paymentInfo.transaction_amount} esperado=${pendingTx.price}`);
-    return null;
-  }
-
-  const type = pendingTx.type || 'buy';
-  const tx = {
-    tx_id,
-    type,
-    event_id: pendingTx.event_id,
-    ticket_id: pendingTx.ticket_id,
-    from_wallet: pendingTx.seller_wallet || null,
-    to_wallet: pendingTx.wallet_address,
-    price: pendingTx.price,
-    timestamp: new Date().toISOString(),
-  };
-
-  await redis.set(`ticket:${pendingTx.event_id}:${pendingTx.ticket_id}:owner`, pendingTx.wallet_address);
-  await redis.sadd(`user:${pendingTx.wallet_address}:tickets`, `${pendingTx.event_id}:${pendingTx.ticket_id}`);
-
-  if (type === 'buy') {
-    await redis.decr(`event:${pendingTx.event_id}:available_tickets`);
-  } else if (type === 'resell') {
-    await redis.set(`ticket:${pendingTx.event_id}:${pendingTx.ticket_id}:resales`, String(pendingTx.resale_count));
-    await redis.del(`ticket:${pendingTx.event_id}:${pendingTx.ticket_id}:qr_secret`);
-    await redis.srem(`user:${pendingTx.seller_wallet}:tickets`, `${pendingTx.event_id}:${pendingTx.ticket_id}`);
-  }
-
-  await redis.rpush(`txpool:${pendingTx.event_id}`, JSON.stringify(tx));
-  await publishTransaction(tx);
-  return tx;
-}
-
-// ─── Rutas MP ─────────────────────────────────────────────────────────────
-
-// GET /transactions/mp/success — redirect de MP al completar el pago.
-// Nunca confía en el query param `status`: siempre verifica contra la API de MP.
-router.get('/mp/success', async (req, res) => {
-  const base = BASE_URL();
-  // MP puede enviar payment_id o collection_id según la versión del checkout
-  const paymentId = req.query.payment_id || req.query.collection_id;
-  const txId = req.query.external_reference;
-
-  try {
-    if (paymentId && txId) {
-      const paymentInfo = await fetchMpPayment(paymentId);
-      const tx = await confirmPaidTransaction(txId, paymentInfo);
-      if (tx) {
-        return res.redirect(`${base}/events/${tx.event_id}?success=true&ticket_id=${tx.ticket_id}`);
-      }
-    }
-  } catch (err) {
-    console.error('[GET /mp/success] Error:', err.message);
-  }
-
-  // Si no se pudo confirmar (ya procesado por webhook, pendiente, o datos faltantes)
-  // mandamos al usuario a sus entradas para que vea el estado.
-  return res.redirect(`${base}/my-tickets`);
-});
-
-// POST /transactions/mp/webhook — notificaciones server-to-server de MP.
-router.post('/mp/webhook', async (req, res) => {
-  if (!verifyMpSignature(req)) {
-    console.warn('[Webhook] Firma inválida o ausente');
-    return res.status(401).send('Invalid signature');
-  }
-
-  try {
-    const dataId = req.query['data.id'] || req.body?.data?.id;
-    const isPayment = req.body?.type === 'payment' || req.query?.topic === 'payment';
-
-    if (isPayment && dataId) {
-      const paymentInfo = await fetchMpPayment(dataId);
-      const tx = await confirmPaidTransaction(paymentInfo.external_reference, paymentInfo);
-      if (tx) console.log(`[Webhook] Confirmada tx ${tx.type} ${tx.tx_id}`);
-    }
-
-    return res.status(200).send('OK');
-  } catch (err) {
-    console.error('[Webhook] Error:', err.message);
-    return res.status(500).send('Internal Error');
-  }
-});
 
 // ─── Rutas de compra ──────────────────────────────────────────────────────
 
@@ -243,23 +52,27 @@ router.post(
       }
 
       const tx_id = uuidv4();
-      const pendingTx = { event_id, ticket_id, wallet_address: req.user.wallet_address, price: event.price };
-
-      await redis.setex(`ticket:${event_id}:${ticket_id}:owner`, 900, 'pending_payment');
-      await redis.setex(`pending_tx:${tx_id}`, 900, JSON.stringify(pendingTx));
-
-      const init_point = await createCheckoutPreference({
-        ticket_id,
-        title: `Entrada: ${event.name}`,
-        price: event.price,
+      const tx = {
         tx_id,
+        type: 'buy',
         event_id,
-      });
+        ticket_id,
+        from_wallet: null,
+        to_wallet: req.user.wallet_address,
+        price: event.price,
+        timestamp: new Date().toISOString(),
+      };
 
-      return res.status(200).json({ init_point, ticket_id, status: 'pending_payment' });
+      await redis.set(`ticket:${event_id}:${ticket_id}:owner`, req.user.wallet_address);
+      await redis.sadd(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
+      await redis.decr(`event:${event_id}:available_tickets`);
+      await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
+      await publishTransaction(tx);
+
+      return res.status(200).json({ tx_id, ticket_id, status: 'confirmed' });
     } catch (err) {
       console.error('[POST /buy] Error:', err.message);
-      return res.status(500).json({ error: err.message || 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
@@ -298,31 +111,30 @@ router.post(
       const resale_count = parseInt(resaleCountRaw || '0');
 
       const tx_id = uuidv4();
-      const pendingTx = {
-        event_id, ticket_id,
-        wallet_address: req.user.wallet_address,
-        seller_wallet: listing.seller_wallet,
-        price: listing.price,
-        resale_count: resale_count + 1,
+      const tx = {
+        tx_id,
         type: 'resell',
+        event_id,
+        ticket_id,
+        from_wallet: listing.seller_wallet,
+        to_wallet: req.user.wallet_address,
+        price: listing.price,
+        timestamp: new Date().toISOString(),
       };
 
-      await redis.setex(`ticket:${event_id}:${ticket_id}:owner`, 900, 'pending_payment');
-      await redis.setex(`pending_tx:${tx_id}`, 900, JSON.stringify(pendingTx));
+      await redis.set(`ticket:${event_id}:${ticket_id}:owner`, req.user.wallet_address);
+      await redis.set(`ticket:${event_id}:${ticket_id}:resales`, String(resale_count + 1));
+      await redis.del(`ticket:${event_id}:${ticket_id}:qr_secret`);
+      await redis.srem(`user:${listing.seller_wallet}:tickets`, `${event_id}:${ticket_id}`);
+      await redis.sadd(`user:${req.user.wallet_address}:tickets`, `${event_id}:${ticket_id}`);
       await redis.hdel(`event:${event_id}:listings`, ticket_id);
+      await redis.rpush(`txpool:${event_id}`, JSON.stringify(tx));
+      await publishTransaction(tx);
 
-      const init_point = await createCheckoutPreference({
-        ticket_id,
-        title: `Reventa: ${event.name}`,
-        price: listing.price,
-        tx_id,
-        event_id,
-      });
-
-      return res.status(200).json({ init_point, ticket_id, status: 'pending_payment' });
+      return res.status(200).json({ tx_id, ticket_id, status: 'confirmed' });
     } catch (err) {
       console.error('[POST /buy-listed] Error:', err.message);
-      return res.status(500).json({ error: err.message || 'Internal server error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 );
@@ -447,7 +259,7 @@ router.get(
   }
 );
 
-// POST /transactions/resell — transferencia directa a otra wallet (sin pago MP)
+// POST /transactions/resell — transferencia directa a otra wallet
 router.post(
   '/resell',
   requireAuth,
