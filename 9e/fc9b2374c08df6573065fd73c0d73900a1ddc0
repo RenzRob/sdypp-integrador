@@ -1,0 +1,58 @@
+load-tests/run.sh
+  s_fb4b5dc61c6d71::t_06393ef2148fd6 84
+  h_c044bf8701ab58 11-12,18,22-26
+  s_fb4b5dc61c6d71::t_7a616701f4ee45 59,61
+  s_fb4b5dc61c6d71::t_9ae803dfbda43d 58,60
+  s_fb4b5dc61c6d71::t_e178f08ec091f2 1-10,13-17,19-21,27-57,62-83,85-113
+backend/transaction-api/src/routes/transactions.js
+  s_63ad118c509a69::t_8aa098184018f0 23-27
+  s_63ad118c509a69::t_5c694f14cf3a93 310-311
+  s_63ad118c509a69::t_f58b1ee38ee5d3 46-47
+  s_63ad118c509a69::t_df80acb450f648 188-189
+  s_63ad118c509a69::t_a829943be13293 118-119
+backend/event-registry/src/lib/auth.js
+  s_63ad118c509a69::t_57f1e55ce6c407 34-55
+load-tests/setup.py
+  s_fb4b5dc61c6d71::t_a71919a17ad678 4,10-12,23-26,31-43,45-49,65-67,71-74,92,101,135-137
+  s_63ad118c509a69::t_b2e3c20370284b 63
+.gitignore
+  s_fb4b5dc61c6d71::t_b729d15bf97da8 41
+backend/auth-service/src/lib/db.js
+  s_63ad118c509a69::t_3b8800c7bb7b25 71
+backend/event-registry/src/routes/events.js
+  s_63ad118c509a69::t_77a406282625b0 9
+  s_63ad118c509a69::t_8eadb29258a088 76-78,91-94
+  s_63ad118c509a69::t_833ee83e3e6efd 170
+  s_63ad118c509a69::t_f23689539a73b1 208,216-217,225-229,236-237
+  s_63ad118c509a69::t_c0ab968fd75e9a 125
+  s_63ad118c509a69::t_01afc5cde58524 133
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "9efc9b2374c08df6573065fd73c0d73900a1ddc0",
+  "prompts": {},
+  "humans": {
+    "h_c044bf8701ab58": {
+      "author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  },
+  "sessions": {
+    "s_63ad118c509a69": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "59afddeb-46a2-4e51-834f-afa7673e7976",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_fb4b5dc61c6d71": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "00339cd3-c39b-4a4d-93fe-5132f6862c9c",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
