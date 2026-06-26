@@ -597,6 +597,20 @@
       <span class="nav-icon">🗄️</span>
       <span class="nav-label">Modelo de datos Redis</span>
     </div>
+
+    <div class="nav-section">Monitoreo</div>
+    <div class="nav-item" data-target="monitoring-discovery">
+      <span class="nav-icon">🔭</span>
+      <span class="nav-label">Service discovery & scraping</span>
+    </div>
+    <div class="nav-item" data-target="monitoring-metrics">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Métricas HTTP & RabbitMQ</span>
+    </div>
+    <div class="nav-item" data-target="monitoring-dashboard">
+      <span class="nav-icon">🖥️</span>
+      <span class="nav-label">Grafana — consulta al dashboard</span>
+    </div>
   </nav>
 </aside>
 
@@ -2168,6 +2182,297 @@ graph LR
         </div>
       </div>
 
+    </div>
+
+    <!-- ── MONITORING: SERVICE DISCOVERY ── -->
+    <div class="diagram-section" id="sec-monitoring-discovery">
+      <div class="section-header">
+        <h2><span class="icon">🔭</span> Service discovery & scraping — Prometheus</h2>
+        <p>Prometheus descubre automáticamente los targets a través de los objetos <code style="font-family:monospace;color:#a5d6ff;">ServiceMonitor</code> CRD que Kubernetes expone en su API. Cada ServiceMonitor apunta a un Service de la aplicación y define el puerto, el path y el intervalo de scraping. No hay configuración estática.</p>
+        <div class="tags">
+          <span class="tag">kube-prometheus-stack</span>
+          <span class="tag">ServiceMonitor CRD</span>
+          <span class="tag">namespace: monitoring</span>
+          <span class="tag">namespace: g-404</span>
+          <span class="tag">intervalo 15s</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Arranque del stack y registro de targets</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor Ops as Operador
+  participant HLM as Helm
+  participant K8S as Kubernetes API
+  participant PRM as Prometheus<br/>(ns: monitoring)
+  participant GRF as Grafana<br/>(ns: monitoring)
+
+  Ops->>HLM: helm upgrade --install monitoring<br/>prometheus-community/kube-prometheus-stack<br/>-f prometheus-values.yaml
+  HLM->>K8S: Despliega Prometheus, Grafana,<br/>kube-state-metrics, node-exporter
+
+  Ops->>K8S: kubectl apply -f transaction-api-servicemonitor.yaml
+  Ops->>K8S: kubectl apply -f access-control-servicemonitor.yaml
+  Ops->>K8S: kubectl apply -f rabbitmq-servicemonitor.yaml
+  Ops->>K8S: kubectl apply -f ticketchain-dashboard.yaml
+
+  Note over K8S: ServiceMonitor CRDs registrados<br/>ConfigMap con label grafana_dashboard=1
+
+  PRM->>K8S: Watch ServiceMonitor objects<br/>(todos los namespaces)
+  K8S-->>PRM: Lista de ServiceMonitors:<br/>transaction-api, access-control, rabbitmq
+
+  PRM->>K8S: Resolve Service endpoints<br/>por selector app: transaction-api (ns: g-404)
+  K8S-->>PRM: Pod IPs + puertos
+
+  GRF->>K8S: Watch ConfigMaps con label grafana_dashboard=1
+  K8S-->>GRF: ticketchain-stress-dashboard ConfigMap
+  GRF->>GRF: Importa dashboard "TicketChain — Stress Test"
+
+  loop Cada 15 segundos
+    PRM->>PRM: transaction-api:3003/metrics
+    PRM->>PRM: access-control:3004/metrics
+    PRM->>PRM: rabbitmq:15692/metrics
+    PRM->>PRM: rabbitmq:15692/metrics/detailed<br/>?family=queue_coarse_metrics
+    PRM->>PRM: Almacena series en TSDB<br/>(5 Gi · retención 7 días)
+  end
+          </div>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Mapa de ServiceMonitors → targets</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+graph LR
+  subgraph MON["namespace: monitoring"]
+    SM1["ServiceMonitor<br/>transaction-api<br/>port: http · /metrics · 15s"]
+    SM2["ServiceMonitor<br/>access-control<br/>port: http · /metrics · 15s"]
+    SM3["ServiceMonitor<br/>rabbitmq<br/>port: prometheus · /metrics · 15s"]
+    SM4["ServiceMonitor<br/>rabbitmq-detailed<br/>port: prometheus · /metrics/detailed · 15s"]
+    PROM["Prometheus<br/>TSDB 5Gi / 7d"]
+    GRAF["Grafana<br/>:443/grafana"]
+  end
+
+  subgraph APP["namespace: g-404"]
+    TX["transaction-api<br/>:3003/metrics"]
+    AC["access-control<br/>:3004/metrics"]
+    RMQ["rabbitmq<br/>:15692/metrics"]
+    KSM["kube-state-metrics<br/>(HPAs, pods, deployments)"]
+    NE["node-exporter<br/>(CPU, mem, disco nodo)"]
+  end
+
+  SM1 -->|scrape| TX
+  SM2 -->|scrape| AC
+  SM3 -->|scrape| RMQ
+  SM4 -->|scrape detailed| RMQ
+  PROM --- SM1
+  PROM --- SM2
+  PROM --- SM3
+  PROM --- SM4
+  PROM -->|built-in| KSM
+  PROM -->|built-in| NE
+  GRAF -->|PromQL| PROM
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MONITORING: METRICS HTTP & RABBITMQ ── -->
+    <div class="diagram-section" id="sec-monitoring-metrics">
+      <div class="section-header">
+        <h2><span class="icon">📊</span> Métricas HTTP & RabbitMQ</h2>
+        <p>Cada request HTTP que llega a <code style="font-family:monospace;color:#a5d6ff;">transaction-api</code> o <code style="font-family:monospace;color:#a5d6ff;">access-control</code> incrementa el contador <code style="font-family:monospace;color:#a5d6ff;">http_requests_total</code> (prom-client). Prometheus recoge ese valor cada 15 segundos. RabbitMQ expone métricas de sus colas en tiempo real mediante su exporter built-in.</p>
+        <div class="tags">
+          <span class="tag">prom-client</span>
+          <span class="tag">http_requests_total</span>
+          <span class="tag">rabbitmq exporter</span>
+          <span class="tag">queue depth</span>
+          <span class="tag">HPA metrics</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Ciclo de vida de una métrica HTTP — desde el request hasta Grafana</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor C as Cliente
+  participant TX as transaction-api<br/>(:3003)
+  participant MC as prom-client<br/>(Registry en memoria)
+  participant PRM as Prometheus
+  participant GRF as Grafana
+
+  C->>TX: POST /api/transactions/buy<br/>Authorization: Bearer {token}
+  TX->>TX: Procesa solicitud<br/>(valida JWT, consulta Redis, reserva ticket)
+  TX-->>C: 200 {tx_id, status:"pending_payment"}
+
+  TX->>MC: httpRequestsTotal.inc({<br/>  method: "POST",<br/>  route: "/transactions/buy",<br/>  status_code: 200<br/>})
+
+  Note over MC: Contador en memoria:<br/>http_requests_total{<br/>  method="POST",<br/>  route="/transactions/buy",<br/>  status_code="200"<br/>} = 1437
+
+  loop Cada 15 segundos
+    PRM->>TX: GET :3003/metrics
+    TX->>MC: await register.metrics()
+    MC-->>TX: Texto Prometheus exposition format:<br/># HELP http_requests_total ...<br/>http_requests_total{...} 1437<br/>process_cpu_seconds_total ...<br/>nodejs_heap_used_bytes ...
+    TX-->>PRM: 200 text/plain
+    PRM->>PRM: Almacena en TSDB:<br/>serie temporal con timestamp
+  end
+
+  C->>GRF: Abre dashboard "TicketChain — Stress Test"
+  GRF->>PRM: PromQL:<br/>sum(rate(http_requests_total{<br/>  job="transaction-api",<br/>  route!="/metrics"}[1m])) * 60
+  PRM-->>GRF: [{timestamp, value: 342.5}]
+  GRF-->>C: Panel "RPM — transaction-api": 342 req/min
+          </div>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Métricas de RabbitMQ — profundidad de colas del pipeline blockchain</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant NCT as NCT
+  participant MQ as RabbitMQ<br/>(:5672 / :15692)
+  participant WK as Workers<br/>CPU / GPU
+  participant PRM as Prometheus
+  participant GRF as Grafana
+
+  NCT->>MQ: publish(exchange:transactions, tx.new)
+  Note over MQ: transactions_q depth += 1
+  NCT->>MQ: publish(exchange:mining, task.global)
+  Note over MQ: mining_gateway_q depth += 1
+  WK->>MQ: publish(exchange:nct_results, nct.result)
+  Note over MQ: nct_results_q depth += 1
+
+  loop Cada 15 segundos
+    PRM->>MQ: GET :15692/metrics
+    MQ-->>PRM: rabbitmq_connections, channels,<br/>messages totales (built-in exporter)
+
+    PRM->>MQ: GET :15692/metrics/detailed<br/>?family=queue_coarse_metrics
+    MQ-->>PRM: rabbitmq_detailed_queue_messages{queue="transactions_q"} 3<br/>rabbitmq_detailed_queue_messages_ready{queue="transactions_q"} 3<br/>rabbitmq_detailed_queue_messages{queue="mining_gateway_q"} 1<br/>rabbitmq_detailed_queue_messages{queue="nct_results_q"} 0<br/>rabbitmq_detailed_queue_process_reductions_total{queue="transactions_q"} 84291
+
+    PRM->>PRM: Almacena series
+  end
+
+  GRF->>PRM: PromQL: rabbitmq_detailed_queue_messages{queue="transactions_q"}
+  PRM-->>GRF: [{ts, value: 3}]
+  GRF-->>GRF: Panel "Cola: transactions_q" → profundidad 3<br/>(depth=0 en régimen normal: NCT consume rápido)
+
+  GRF->>PRM: PromQL: rate(rabbitmq_detailed_queue_process_reductions_total{queue="transactions_q"}[1m])
+  PRM-->>GRF: [{ts, value: 142.3 ops/s}]
+  GRF-->>GRF: Panel "Throughput de colas" → 142 ops/seg
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MONITORING: GRAFANA DASHBOARD ── -->
+    <div class="diagram-section" id="sec-monitoring-dashboard">
+      <div class="section-header">
+        <h2><span class="icon">🖥️</span> Grafana — carga del dashboard y flujo de consulta</h2>
+        <p>El dashboard "TicketChain — Stress Test" se carga automáticamente al arrancar Grafana, sin intervención manual: está definido en un ConfigMap con la label <code style="font-family:monospace;color:#a5d6ff;">grafana_dashboard: "1"</code> que el sidecar de Grafana detecta vía watch. Cada panel ejecuta una PromQL independiente a Prometheus.</p>
+        <div class="tags">
+          <span class="tag">uid: ticketchain-stress</span>
+          <span class="tag">refresh: 10s</span>
+          <span class="tag">ConfigMap auto-load</span>
+          <span class="tag">grafana_dashboard: "1"</span>
+          <span class="tag">HTTPS · Let's Encrypt</span>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Auto-carga del dashboard desde ConfigMap</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+sequenceDiagram
+  autonumber
+  actor Ops as Operador
+  participant K8S as Kubernetes API
+  participant SC as Grafana Sidecar<br/>(dashboard-watcher)
+  participant GRF as Grafana<br/>(proceso principal)
+  participant PRM as Prometheus
+
+  Ops->>K8S: kubectl apply -f ticketchain-dashboard.yaml
+  Note over K8S: ConfigMap "ticketchain-stress-dashboard"<br/>namespace: monitoring<br/>label: grafana_dashboard=1<br/>data: ticketchain-stress.json (14 paneles)
+
+  SC->>K8S: Watch ConfigMaps {grafana_dashboard=1}
+  K8S-->>SC: ADDED: ticketchain-stress-dashboard
+  SC->>SC: Escribe JSON en /tmp/dashboards/
+  SC->>GRF: Señal: nuevo dashboard disponible
+
+  GRF->>GRF: Importa dashboard uid=ticketchain-stress<br/>14 paneles · refresh 10s · timeRange last 30m
+
+  actor U as Usuario
+  U->>GRF: GET https://ticketchain404.duckdns.org/grafana/<br/>(admin / ticketchain2026)
+  GRF-->>U: Renderiza dashboard
+
+  loop Cada 10 segundos (auto-refresh)
+    par Panel: RPM transaction-api
+      GRF->>PRM: sum(rate(http_requests_total{job="transaction-api",route!="/metrics"}[1m]))*60
+      PRM-->>GRF: series → renderiza time-series
+    and Panel: Errores 5xx
+      GRF->>PRM: sum(rate(http_requests_total{status_code=~"5.."}[1m]))*60
+      PRM-->>GRF: series → renderiza con color rojo
+    and Panel: Cola transactions_q
+      GRF->>PRM: rabbitmq_detailed_queue_messages{queue="transactions_q"}
+      PRM-->>GRF: value → renderiza gauge
+    and Panel: HPA réplicas
+      GRF->>PRM: kube_horizontalpodautoscaler_status_current_replicas{namespace="g-404"}
+      PRM-->>GRF: value → renderiza stat
+    end
+    GRF-->>U: Dashboard actualizado
+  end
+          </div>
+        </div>
+      </div>
+      <div class="diagram-card">
+        <div class="diagram-card-title">Vista completa — paneles del dashboard y sus fuentes de datos</div>
+        <div class="diagram-card-body">
+          <div class="mermaid">
+graph TD
+  subgraph DASH["Dashboard: TicketChain — Stress Test · uid: ticketchain-stress · refresh: 10s"]
+    subgraph S1["Tráfico HTTP"]
+      P1["RPM — transaction-api<br/><small>rate(http_requests_total{job=tx-api}[1m])*60</small>"]
+      P2["RPM — access-control<br/><small>rate(http_requests_total{job=ac}[1m])*60</small>"]
+    end
+    subgraph S2["Errores HTTP"]
+      P3["Errores 5xx / min<br/><small>status_code=~'5..'</small>"]
+      P4["Distribución por status code<br/><small>sum by(status_code)</small>"]
+    end
+    subgraph S3["RabbitMQ — Colas"]
+      P5["transactions_q depth<br/><small>rabbitmq_detailed_queue_messages</small>"]
+      P6["mining_gateway_q depth"]
+      P7["nct_results_q depth"]
+    end
+    subgraph S4["Throughput de colas"]
+      P8["Ops / seg por cola<br/><small>rate(reductions_total[1m])</small>"]
+    end
+    subgraph S5["CPU & Memoria APIs"]
+      P9["CPU millicores<br/><small>container_cpu_usage * 1000</small>"]
+      P10["Memoria working-set<br/><small>container_memory_working_set_bytes</small>"]
+    end
+    subgraph S6["Escalabilidad & Salud"]
+      P11["HPA réplicas actuales vs máx<br/><small>kube_hpa_status_current_replicas</small>"]
+      P12["Pod restarts 30m<br/><small>increase(restarts_total[30m])</small>"]
+      P13["Estado deployments g-404<br/><small>kube_deployment_status_replicas_available</small>"]
+    end
+  end
+
+  subgraph SRC["Fuentes de datos (Prometheus)"]
+    TX2["transaction-api:3003/metrics"]
+    AC2["access-control:3004/metrics"]
+    RMQ2["rabbitmq:15692/metrics"]
+    KSM2["kube-state-metrics"]
+    KUB["kubelet / cadvisor"]
+  end
+
+  P1 & P2 & P3 & P4 -->|PromQL| TX2
+  P1 & P2 & P3 & P4 -->|PromQL| AC2
+  P5 & P6 & P7 & P8 -->|PromQL| RMQ2
+  P9 & P10 -->|PromQL| KUB
+  P11 & P12 & P13 -->|PromQL| KSM2
+          </div>
+        </div>
+      </div>
     </div>
 
   </div><!-- /content -->

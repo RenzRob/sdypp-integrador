@@ -61,6 +61,16 @@ spec:
                 secretKeyRef:
                   name: ticketchain-secrets
                   key: SCANNER_PASSWORD
+            - name: LOAD_TEST_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: LOAD_TEST_EMAIL
+            - name: LOAD_TEST_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ticketchain-secrets
+                  key: LOAD_TEST_PASSWORD
 ---
 apiVersion: v1
 kind: Service

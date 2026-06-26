@@ -34,3 +34,7 @@ Thumbs.db
 .claude/worktrees/
 renzo.yaml
 frontend/package-lock.json
+
+# ── Load tests ────────────────────────────────────────────────────────────────
+load-tests/test-data.json
+load-tests/results/

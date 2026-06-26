@@ -125,6 +125,10 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=MINIO_SECRET_KEY=<valor> \
   --from-literal=ADMIN_EMAIL=<email> \
   --from-literal=ADMIN_PASSWORD=<password> \
+  --from-literal=SCANNER_EMAIL=<email> \
+  --from-literal=SCANNER_PASSWORD=<password> \
+  --from-literal=LOAD_TEST_EMAIL=<email> \
+  --from-literal=LOAD_TEST_PASSWORD=<password> \
   --from-literal=MP_ACCESS_TOKEN=<token TEST- o produccion de MP> \
   --from-literal=MP_WEBHOOK_SECRET=<secreto webhook MP> \
   --from-literal=PUBLIC_API_URL=https://ticketchain404.duckdns.org \
@@ -217,6 +221,10 @@ kubectl create secret generic ticketchain-secrets \
   --from-literal=MINIO_SECRET_KEY=<valor> \
   --from-literal=ADMIN_EMAIL=<email> \
   --from-literal=ADMIN_PASSWORD=<password> \
+  --from-literal=SCANNER_EMAIL=<email> \
+  --from-literal=SCANNER_PASSWORD=<password> \
+  --from-literal=LOAD_TEST_EMAIL=<email> \
+  --from-literal=LOAD_TEST_PASSWORD=<password> \
   --from-literal=MP_ACCESS_TOKEN=<token TEST- o produccion de MP> \
   --from-literal=MP_WEBHOOK_SECRET=<secreto webhook MP> \
   --from-literal=PUBLIC_API_URL=https://ticketchain404.duckdns.org \
@@ -253,4 +261,110 @@ kubectl get hpa -n g-404 -w
 # Detalle de un HPA específico (eventos de scaling, métricas)
 kubectl describe hpa transaction-api-hpa -n g-404
 kubectl describe hpa access-control-hpa -n g-404
+```
+
+---
+
+## Monitoreo (Prometheus + Grafana)
+
+Stack: **kube-prometheus-stack** (Helm) en namespace `monitoring`.
+Componentes activos: Prometheus, Grafana, kube-state-metrics, node-exporter.
+AlertManager: deshabilitado (reduce recursos).
+
+### Instalación
+
+```bash
+# Agregar repositorio
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+# Instalar / actualizar con los values del repo
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack \
+  -n monitoring --create-namespace \
+  -f iac/k8s/cluster-services/monitoring/prometheus-values.yaml
+```
+
+### Aplicar ServiceMonitors y dashboard
+
+Los ServiceMonitors le indican a Prometheus qué pods raspar. El dashboard se carga automáticamente como ConfigMap con label `grafana_dashboard: "1"`.
+
+```bash
+# ServiceMonitors (un archivo por servicio)
+kubectl apply -f iac/k8s/cluster-services/monitoring/transaction-api-servicemonitor.yaml
+kubectl apply -f iac/k8s/cluster-services/monitoring/access-control-servicemonitor.yaml
+kubectl apply -f iac/k8s/cluster-services/monitoring/rabbitmq-servicemonitor.yaml
+
+# Dashboard Grafana (ConfigMap auto-cargado)
+kubectl apply -f iac/k8s/cluster-services/monitoring/ticketchain-dashboard.yaml
+```
+
+### Acceso a Grafana
+
+| Modo | URL |
+|---|---|
+| Ingress público | https://ticketchain404.duckdns.org/grafana/ |
+| Port-forward local | `kubectl port-forward svc/monitoring-grafana 3000:80 -n monitoring` → http://localhost:3000 |
+
+- **Usuario:** `admin`
+- **Dashboard:** `TicketChain — Stress Test` (uid: `ticketchain-stress`)
+
+### Acceso a Prometheus (diagnóstico)
+
+```bash
+# Port-forward — útil para explorar targets y ejecutar PromQL
+kubectl port-forward svc/monitoring-kube-prometheus-prometheus 9090:9090 -n monitoring
+# → http://localhost:9090/targets   (ver estado de scraping)
+# → http://localhost:9090/graph     (ejecutar PromQL)
+```
+
+### Diagnóstico de scraping
+
+```bash
+# Ver todos los ServiceMonitors registrados
+kubectl get servicemonitor -n monitoring
+
+# Verificar que Prometheus cargó los targets (requiere port-forward al :9090)
+# http://localhost:9090/targets → buscar "transaction-api", "access-control", "rabbitmq"
+
+# Ver logs de Prometheus
+kubectl logs -n monitoring -l app.kubernetes.io/name=prometheus -c prometheus --tail=50
+
+# Ver logs de Grafana
+kubectl logs -n monitoring -l app.kubernetes.io/name=grafana --tail=50
+
+# Verificar que el dashboard fue cargado
+kubectl get configmap -n monitoring -l grafana_dashboard=1
+```
+
+### PromQL útiles
+
+```promql
+# Requests por minuto en transaction-api (por ruta)
+sum by (route) (rate(http_requests_total{job="transaction-api",route!="/metrics"}[1m])) * 60
+
+# Errores 5xx en ambas APIs
+sum(rate(http_requests_total{job=~"transaction-api|access-control",status_code=~"5.."}[1m])) * 60
+
+# Profundidad de la cola transactions_q
+rabbitmq_detailed_queue_messages{queue="transactions_q"}
+
+# CPU de transaction-api en millicores
+rate(container_cpu_usage_seconds_total{namespace="g-404",container="transaction-api"}[2m]) * 1000
+
+# Memoria working-set de access-control
+container_memory_working_set_bytes{namespace="g-404",container="access-control"}
+
+# Réplicas actuales vs máximas (HPA)
+kube_horizontalpodautoscaler_status_current_replicas{namespace="g-404"}
+kube_horizontalpodautoscaler_spec_max_replicas{namespace="g-404"}
+
+# Reinicios de pods en los últimos 30 min
+increase(kube_pod_container_status_restarts_total{namespace="g-404"}[30m])
+```
+
+### Desinstalar el stack de monitoreo
+
+```bash
+helm uninstall monitoring -n monitoring
+kubectl delete ns monitoring
 ```

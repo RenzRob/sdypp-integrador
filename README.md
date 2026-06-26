@@ -192,6 +192,7 @@ Ver [`docs/comandos.md`](docs/comandos.md) para los comandos de despliegue.
 | Seguridad cross-cluster | mTLS mutuo entre mining-gateway (GKE) y transaction-pool (cluster del profe). Verificado por ingress-nginx con cert de CA propia |
 | Algoritmo de hash | MD5 (PoW sobre el bloque) |
 | Mecanismo de consenso | Proof of Work (PoW) con dificultad configurable via `MINING_DIFFICULTY` |
+| Monitoreo | Prometheus + Grafana (kube-prometheus-stack). ServiceMonitors para transaction-api, access-control y RabbitMQ. Dashboard "TicketChain — Stress Test" con RPM, errores, profundidad de colas y HPA. |
 
  
 

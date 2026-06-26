@@ -13,7 +13,13 @@ iac/
 │   │   ├── config/                — namespace, configmap
 │   │   ├── infrastructure/        — postgres, redis, rabbitmq, minio
 │   │   ├── services/              — microservicios de aplicación + mining-gateway
-│   │   └── network/               — ingress (HTTPS público + mTLS para mining-gateway)
+│   │   ├── network/               — ingress (HTTPS público + mTLS para mining-gateway)
+│   │   └── monitoring/            — stack de observabilidad (Prometheus + Grafana)
+│   │       ├── prometheus-values.yaml           — Helm values del kube-prometheus-stack
+│   │       ├── transaction-api-servicemonitor.yaml  — scraping de transaction-api:3003/metrics
+│   │       ├── access-control-servicemonitor.yaml   — scraping de access-control:3004/metrics
+│   │       ├── rabbitmq-servicemonitor.yaml         — scraping de rabbitmq:15692/metrics
+│   │       └── ticketchain-dashboard.yaml           — ConfigMap con dashboard Grafana
 │   └── cluster-mining/            — cluster del profe (g-404)
 │       ├── config/                — configmap
 │       ├── infrastructure/        — rabbitmq local, nvidia-device-plugin
@@ -102,3 +108,78 @@ Los certs se generan una vez con `iac/k8s/certs/gen-certs.sh` y se cargan como s
 kubectl get secrets -n g-404
 kubectl --kubeconfig=renzo.yaml get secrets -n g-404
 ```
+
+---
+
+## Monitoreo
+
+### Stack
+
+| Componente | Helm chart | Namespace |
+|---|---|---|
+| Prometheus | kube-prometheus-stack | monitoring |
+| Grafana | kube-prometheus-stack | monitoring |
+| kube-state-metrics | kube-prometheus-stack | monitoring |
+| node-exporter | kube-prometheus-stack | monitoring |
+| AlertManager | **deshabilitado** | — |
+
+### Targets de scraping (ServiceMonitors)
+
+| Target | Servicio | Puerto | Path | Intervalo |
+|---|---|---|---|---|
+| transaction-api | `transaction-api` (ns: g-404) | 3003 | `/metrics` | 15 s |
+| access-control | `access-control` (ns: g-404) | 3004 | `/metrics` | 15 s |
+| rabbitmq | `rabbitmq` (ns: g-404) | 15692 | `/metrics` | 15 s |
+| rabbitmq-detailed | `rabbitmq` (ns: g-404) | 15692 | `/metrics/detailed?family=queue_coarse_metrics` | 15 s |
+
+### Métricas expuestas por la aplicación
+
+**transaction-api y access-control** (Node.js + prom-client):
+- `http_requests_total{method, route, status_code}` — contador de requests HTTP
+- Métricas de runtime Node.js: CPU, heap, GC, event-loop lag
+
+**RabbitMQ** (exporter built-in):
+- `rabbitmq_detailed_queue_messages{queue}` — mensajes totales en cola
+- `rabbitmq_detailed_queue_messages_ready{queue}` — mensajes listos
+- `rabbitmq_detailed_queue_messages_unacked{queue}` — mensajes sin ACK
+- `rabbitmq_detailed_queue_process_reductions_total{queue}` — throughput de cola
+
+**Kubernetes** (kube-state-metrics + kubelet):
+- `container_cpu_usage_seconds_total` — CPU por contenedor
+- `container_memory_working_set_bytes` — memoria por contenedor
+- `kube_horizontalpodautoscaler_status_current_replicas` — réplicas HPA
+- `kube_pod_container_status_restarts_total` — reinicios de pods
+
+### Dashboard Grafana
+
+- **Nombre:** TicketChain — Stress Test (uid: `ticketchain-stress`)
+- **Refresh:** 10 segundos
+- **Carga:** automática via ConfigMap con label `grafana_dashboard: "1"`
+- **URL:** https://ticketchain404.duckdns.org/grafana/
+
+Paneles disponibles:
+
+| Sección | Panel | Métrica principal |
+|---|---|---|
+| Tráfico HTTP | RPM transaction-api | `rate(http_requests_total{job="transaction-api"}[1m])` |
+| Tráfico HTTP | RPM access-control | `rate(http_requests_total{job="access-control"}[1m])` |
+| Errores HTTP | Errores 5xx/min | `http_requests_total{status_code=~"5.."}` |
+| Errores HTTP | Distribución por status code | `http_requests_total` agrupado por `status_code` |
+| RabbitMQ Colas | Profundidad transactions_q | `rabbitmq_detailed_queue_messages{queue="transactions_q"}` |
+| RabbitMQ Colas | Profundidad mining_gateway_q | `rabbitmq_detailed_queue_messages{queue="mining_gateway_q"}` |
+| RabbitMQ Colas | Profundidad nct_results_q | `rabbitmq_detailed_queue_messages{queue="nct_results_q"}` |
+| Throughput colas | Ops/seg | `rate(rabbitmq_detailed_queue_process_reductions_total[1m])` |
+| CPU & Memoria | CPU millicores | `container_cpu_usage_seconds_total` |
+| CPU & Memoria | Memoria working-set | `container_memory_working_set_bytes` |
+| Escalabilidad | HPA réplicas actuales vs máx | `kube_horizontalpodautoscaler_*` |
+| Escalabilidad | Pod restarts (30 min) | `kube_pod_container_status_restarts_total` |
+| Escalabilidad | Estado deployments | `kube_deployment_status_replicas_available` |
+
+### Prometheus — configuración relevante
+
+- **Retención:** 7 días
+- **Storage:** PVC 5 Gi (`standard-rwo`)
+- **ServiceMonitor discovery:** todos los namespaces (`serviceMonitorNamespaceSelector: {}`)
+- **Ingress Grafana:** HTTPS con cert-manager (Let's Encrypt), secret `grafana-tls`
+
+Ver `docs/comandos.md` — sección "Monitoreo" para todos los comandos de instalación y diagnóstico.
