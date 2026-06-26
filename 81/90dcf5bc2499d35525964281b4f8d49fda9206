@@ -1,0 +1,33 @@
+backend/event-registry/src/lib/auth.js
+  s_62568c0587e620::t_b4786ab7876711 6-8
+docs/guia-exposicion.md
+  s_b0572238f40b11::t_8a5f7e7b910708 1-622
+backend/transaction-api/src/lib/auth.js
+  s_62568c0587e620::t_81d6de76b18248 6-8
+backend/access-control/src/lib/auth.js
+  s_62568c0587e620::t_b2dd8800c87473 6-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.3",
+  "base_commit_sha": "8190dcf5bc2499d35525964281b4f8d49fda9206",
+  "prompts": {},
+  "sessions": {
+    "s_62568c0587e620": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "942a1cd2-2d95-410b-a000-0281163c7398",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    },
+    "s_b0572238f40b11": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f2d9eb5b-79a0-4944-beab-22fa3f8446bf",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "rrobles_meli <renzo.robles@mercadolibre.com>"
+    }
+  }
+}
