@@ -100,7 +100,7 @@ export default function EventDetail() {
         tx_id: data.tx_id, ticket_id: data.ticket_id,
         event_id: data.event_id, event_name: data.event_name, price: data.price,
       })
-      navigate(`/checkout?${params}`)
+      window.open(`/checkout?${params}`, '_blank')
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
     finally { setBuying(false) }
   }
@@ -118,7 +118,7 @@ export default function EventDetail() {
         tx_id: data.tx_id, ticket_id: data.ticket_id,
         event_id: data.event_id, event_name: data.event_name, price: data.price,
       })
-      navigate(`/checkout?${params}`)
+      window.open(`/checkout?${params}`, '_blank')
     } catch (err) { setBuyError(err.message || 'No se pudo procesar la compra') }
     finally { setBuyingListed(null) }
   }
