@@ -9,6 +9,29 @@ const initialForm = {
   precio_max: '', max_reventas: '', nominada: false, ventana_venta: ''
 }
 
+const Section = ({ title, icon, children }) => (
+  <div className="rounded-2xl border border-white/[0.08] bg-[#121214] p-6 mb-5">
+    <h3 className="text-sm font-semibold text-[#f4f4f5] flex items-center gap-2 pb-3 mb-5 border-b border-white/[0.06]">
+      {icon} {title}
+    </h3>
+    {children}
+  </div>
+)
+
+const Field = ({ label, children }) => (
+  <div className="flex flex-col gap-1.5 mb-4">
+    <label className="text-xs font-medium text-[#a1a1aa]">{label}</label>
+    {children}
+  </div>
+)
+
+const InputIcon = ({ icon, children }) => (
+  <div className="relative">
+    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717a]">{icon}</span>
+    {children}
+  </div>
+)
+
 export default function CreateEvent() {
   const [form, setForm] = useState(initialForm)
   const [error, setError] = useState('')
@@ -98,29 +121,6 @@ export default function CreateEvent() {
       setError(err.message || 'No se pudo crear el evento')
     } finally { setLoading(false) }
   }
-
-  const Section = ({ title, icon, children }) => (
-    <div className="rounded-2xl border border-white/[0.08] bg-[#121214] p-6 mb-5">
-      <h3 className="text-sm font-semibold text-[#f4f4f5] flex items-center gap-2 pb-3 mb-5 border-b border-white/[0.06]">
-        {icon} {title}
-      </h3>
-      {children}
-    </div>
-  )
-
-  const Field = ({ label, children }) => (
-    <div className="flex flex-col gap-1.5 mb-4">
-      <label className="text-xs font-medium text-[#a1a1aa]">{label}</label>
-      {children}
-    </div>
-  )
-
-  const InputIcon = ({ icon, children }) => (
-    <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#71717a]">{icon}</span>
-      {children}
-    </div>
-  )
 
   return (
     <main className="flex-1 overflow-y-auto">
