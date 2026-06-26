@@ -235,18 +235,110 @@ kubectl create secret docker-registry ghcr-secret \
   --docker-password=<TOKEN> -n g-404
 ```
 
-### Comandos útiles
+### Comandos en el cluster del profe (renzo.yaml)
+
+Todos los comandos para el cluster de mining usan `--kubeconfig=renzo.yaml`.
+El archivo `renzo.yaml` está en la raíz del repo (gitignored).
 
 ```bash
-# Pods del cluster del profe
+# Listar pods
 kubectl --kubeconfig=renzo.yaml get pods -n g-404
 
-# Logs del TrP / gateway
-kubectl --kubeconfig=renzo.yaml logs -f deployment/transaction-pool -n g-404
-kubectl logs -f deployment/mining-gateway -n g-404
+# Listar pods con más detalle (nodo, IP, estado)
+kubectl --kubeconfig=renzo.yaml get pods -n g-404 -o wide
 
-# Reiniciar para tomar configmap/secret nuevos
+# Ver todos los recursos del namespace
+kubectl --kubeconfig=renzo.yaml get all -n g-404
+
+# Logs en tiempo real
+kubectl --kubeconfig=renzo.yaml logs -f deployment/transaction-pool -n g-404
+kubectl --kubeconfig=renzo.yaml logs -f deployment/worker-cpu -n g-404
+
+# Logs de un pod específico (usar nombre exacto del get pods)
+kubectl --kubeconfig=renzo.yaml logs <nombre-pod> -n g-404 --tail=50
+
+# Describir un pod (útil para ver eventos de crashloop, OOM, etc.)
+kubectl --kubeconfig=renzo.yaml describe pod <nombre-pod> -n g-404
+
+# Entrar a un pod con shell
+kubectl --kubeconfig=renzo.yaml exec -it <nombre-pod> -n g-404 -- sh
+
+# Reiniciar un deployment (para tomar configmap/secret nuevos)
 kubectl --kubeconfig=renzo.yaml rollout restart deployment/transaction-pool -n g-404
+kubectl --kubeconfig=renzo.yaml rollout restart deployment/worker-cpu -n g-404
+
+# Ver configmap activo
+kubectl --kubeconfig=renzo.yaml get configmap -n g-404
+kubectl --kubeconfig=renzo.yaml describe configmap ticketchain-config -n g-404
+
+# Ver secrets (sin valores)
+kubectl --kubeconfig=renzo.yaml get secrets -n g-404
+
+# Escalar a 0 / volver a levantar
+kubectl --kubeconfig=renzo.yaml scale deployment transaction-pool --replicas=0 -n g-404
+kubectl --kubeconfig=renzo.yaml scale deployment transaction-pool --replicas=1 -n g-404
+```
+
+> Si no querés escribir `--kubeconfig=renzo.yaml` en cada comando, podés exportar la variable de entorno para la sesión actual:
+> ```bash
+> export KUBECONFIG=$(pwd)/renzo.yaml
+> kubectl get pods -n g-404   # ya no necesita el flag
+> unset KUBECONFIG            # para volver al contexto GKE
+> ```
+
+### Matar pod / escalar (para pruebas)
+
+```bash
+# Matar un pod (k8s lo recrea automáticamente desde el deployment)
+kubectl delete pod <nombre-pod> -n g-404
+kubectl --kubeconfig=renzo.yaml delete pod <nombre-pod> -n g-404
+
+# Ver el nombre exacto del pod antes de matarlo
+kubectl get pods -n g-404
+kubectl --kubeconfig=renzo.yaml get pods -n g-404
+
+# Desescalar a 0 (detiene todas las réplicas sin borrar el deployment)
+kubectl scale deployment <nombre-deployment> --replicas=0 -n g-404
+kubectl --kubeconfig=renzo.yaml scale deployment <nombre-deployment> --replicas=0 -n g-404
+
+# Volver a escalar (subir réplicas)
+kubectl scale deployment <nombre-deployment> --replicas=1 -n g-404
+kubectl --kubeconfig=renzo.yaml scale deployment <nombre-deployment> --replicas=1 -n g-404
+
+# Ejemplos concretos con los deployments del proyecto
+kubectl scale deployment transaction-api --replicas=0 -n g-404
+kubectl scale deployment transaction-api --replicas=2 -n g-404
+
+kubectl scale deployment access-control --replicas=0 -n g-404
+kubectl scale deployment access-control --replicas=1 -n g-404
+
+kubectl --kubeconfig=renzo.yaml scale deployment transaction-pool --replicas=0 -n g-404
+kubectl --kubeconfig=renzo.yaml scale deployment transaction-pool --replicas=1 -n g-404
+```
+
+> **Nota:** `delete pod` lo mata y k8s lo levanta solo (útil para forzar un restart limpio).
+> `scale --replicas=0` lo detiene completamente; con `--replicas=N` vuelve.
+> Si hay HPA activo, puede volver a escalar solo — deshabilitarlo con `kubectl delete hpa <nombre> -n g-404` si querés mantener 0.
+
+### Ver HPA durante pruebas
+
+```bash
+# Estado de todos los HPAs (réplicas actuales, target CPU, min/max)
+kubectl get hpa -n g-404
+
+# Watch en tiempo real (útil mientras corre la prueba de carga)
+kubectl get hpa -n g-404 -w
+
+# Detalle de un HPA específico (últimos eventos de scaling, métricas actuales)
+kubectl describe hpa transaction-api-hpa -n g-404
+kubectl describe hpa access-control-hpa -n g-404
+
+# Deshabilitar HPA temporalmente (para que no sobreescriba un scale manual)
+kubectl delete hpa transaction-api-hpa -n g-404
+kubectl delete hpa access-control-hpa -n g-404
+
+# Volver a aplicar los HPAs desde los manifiestos
+kubectl apply -f iac/k8s/cluster-services/services/ -n g-404
 ```
 
 ### HPA (Horizontal Pod Autoscaler)

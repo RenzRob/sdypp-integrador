@@ -35,7 +35,7 @@ async function seedAdmin() {
   await pool.query(
     `INSERT INTO users (id, email, password_hash, role, wallet_address)
      VALUES (gen_random_uuid(), $2, $1, 'admin', NULL)
-     ON CONFLICT (email) DO NOTHING`,
+     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
     [password_hash, email]
   );
   console.log('[DB] Admin user ready');
@@ -52,7 +52,7 @@ async function seedScanner() {
   await pool.query(
     `INSERT INTO users (id, email, password_hash, role, wallet_address)
      VALUES (gen_random_uuid(), $2, $1, 'scanner', NULL)
-     ON CONFLICT (email) DO NOTHING`,
+     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
     [password_hash, email]
   );
   console.log('[DB] Scanner user ready');
@@ -69,7 +69,7 @@ async function seedLoadTest() {
   await pool.query(
     `INSERT INTO users (id, email, password_hash, role, wallet_address)
      VALUES (gen_random_uuid(), $2, $1, 'load_test', NULL)
-     ON CONFLICT (email) DO NOTHING`,
+     ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash`,
     [password_hash, email]
   );
   console.log('[DB] Load-test user ready');
